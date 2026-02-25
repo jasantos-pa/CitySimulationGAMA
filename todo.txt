@@ -1,0 +1,124 @@
+[Carga GIS] Se cargan sin error ROADS, CROSSROADS, STREETS, BUILDINGS, railway3.
+[Red vial] roadsNetwork se crea y permite rutas entre nodos no bloqueados.
+[Red peatonal] streetsNetwork se crea y conecta bien calles + pasos de cebra.
+[Red ferroviaria] tracksNetwork conecta estaciones reales de origen/destino.
+[Clasificación cruces] Flags (isTrafficLight, isYield, isStop, isZebraCrossing, etc.) quedan correctos.
+[Puntos de carga] Conectores (CCS2, Type2, ChaDeMo) se leen y asignan correctamente.
+[Base de datos] Todas las consultas SQL devuelven datos válidos (sin mapas vacíos).
+[Probabilidades] Vectores probabilísticos suman ~1 y no contienen claves inválidas.
+[Orientación pareja] orientationProbabilities devuelve categorías correctas para rnd_choice.
+[Distritos] Asignación de hogares por distrito no deja hogares sin vivienda.
+[Vehículos consumo] vehicleConsumptionMatrix se rellena con tamaño coherente.
+[Población objetivo] createFamilies llega a numPeople sin desviación excesiva.
+[Distribución edades] age_counts cuadra con total de Person.
+[Relaciones familiares] Enlaces padre/madre/hijos son consistentes con género y edades.
+[Parejas] Enlace bidireccional partner queda siempre consistente.
+[Horario laboral] start_work, end_work, bedtime quedan en rangos válidos.
+[Trabajo por edad] Menores/estudiantes/adultos/elderly reciben working_place coherente.
+[Commuting interurbano] Mapeo ciudad↔estación funciona (nombres y acentos incluidos).
+[Reloj sim] current_date avanza correctamente con step.
+[Día/noche] Cambio de fondo/luz día-noche funciona sin saltos raros.
+[Semáforos] Ciclo verde/amarillo/rojo respeta temporizaciones.
+[Yield/Stop] Coches se paran y reanudan correctamente en yield y stop.
+[Paso cebra] Coches frenan cuando pedestrianCount > 0.
+[Paso cebra] Al liberar cruce, se limpia stop y el tráfico vuelve a fluir.
+[Antibloqueo cebra] crossingTimeout libera bloqueos fantasma de forma controlada.
+[Peatón-ruta] path_between(streetsNetwork, start, finishPoint) encuentra ruta en casos normales.
+[Peatón-llegada] Al llegar, the_target se limpia y se cierra viaje en log.
+[Cruce ENTER/EXIT] Eventos CROSSWALK_ENTER y CROSSWALK_EXIT quedan pareados.
+[Trabajo real] Personas van al trabajo a su hora y vuelven a casa a end_work.
+[Actividades] Objetivos de ocio se activan en ventana horaria válida.
+[Acompañantes] Si se marca acompañamiento, acompañan al mismo destino/tiempo.
+[Acompañantes] Distancia acompañante-principal se mantiene dentro de umbral operativo.
+[Modo forzado] forcedWalkMode realmente fuerza trayecto a pie (salvo largo recorrido).
+[Trayecto largo] Selección car/train/taxi para largo recorrido respeta probabilidades.
+[Tren] Flujo completo: caminar estación, esperar, subir, bajar, completar objetivo final.
+[Tren] Colas waitingPassengers no se quedan “atascadas” indefinidamente.
+[Tren avería] En avería, pasajeros abortan y se registra estado correcto.
+[Coche normal] Cálculo de ruta inicial/fallback por radio funciona cuando hay current_path=nil.
+[Coche normal] Gestión de atasco (counterStucked, proba_use_linked_road) no elimina coches de más.
+[Coche normal] En avería se elimina tras broken_removal_minutes, no antes ni mucho después.
+[Coche normal] Pasajeros asociados llegan y cierran viaje correctamente.
+[Conductor coche] El propio Person que elige coche también completa viaje (no solo acompañantes).
+[CO2] Cálculo de consumoCO2 es coherente con unidad temporal/velocidad.
+[Taxi eléctrico] Detección lowBattery y transición a recarga funciona.
+[Taxi eléctrico] Selección de cargador compatible por conector es correcta.
+[Taxi eléctrico] Recarga termina por tiempo o soc >= 0.80 y vuelve a disponibilidad.
+[Taxi eléctrico] Contador freeTaxis nunca negativo y siempre consistente con estado real.
+[Taxi centralita] Asignación de viajes pending→in progress→finished sin pérdidas.
+[Taxi servicio] Request, pickup, drop-off y coste/tiempo se registran correctamente.
+[Taxi espera] waitingTime y tripTime usan unidades coherentes (fecha/sim time).
+[Logs] trips.csv y events.csv se crean con cabeceras y se vacían cada 10 ciclos.
+[Trazabilidad] Cada start_trip_log tiene end_trip_log (COMPLETED o ABORTED).
+[Analítica] analyze_simulation.py procesa logs sin errores de parseo.
+[Monitores] Monitores de taxi no devuelven NaN cuando no hay viajes.
+[Experimento CO2] Guardado sim.gsim en ciclo 100 funciona.
+[Experimento edades] Gráfico de edades refleja distribución esperada.
+[Visualización] 2D/3D y apariencia extendida de coches no rompen la simulación.
+[Escalabilidad] Con 10k y 100k personas no hay degradación inaceptable.
+
+
+Reparto modal observado:
+walking: 44.17%
+train: 36.31%
+car: 13.07%
+taxi: 6.45%
+Demanda temporal observada:
+Pico: 471 viajeros activos en 1.508 h
+Media: 176.95
+P95: 368.05
+Valle no-cero: 2
+Relación pico/media: 2.66x (pico muy concentrado)
+Inicio de viajes por hora desde arranque:
+Hora 0: 411
+Hora 1: 396
+Horas 0-1 juntas: 807/1209 = 66.7% de todos los inicios
+Horas 9-11 juntas: 201/1209 = 16.6%
+Comparación con lo configurado en simulación
+
+Probabilidades configuradas en CitySimulation.gaml (line 90) a CitySimulation.gaml (line 96):
+Corta distancia: walking 40.48%, car 57.14%, taxi 2.38%
+Larga distancia: car 72.73%, train 24.24%, taxi 3.03%
+Discrepancia modal fuerte:
+car observado 13.07% (muy por debajo de cualquier configuración esperada)
+train observado 36.31% (por encima del 24.24% de larga distancia)
+taxi observado 6.45% (2-3x de lo esperado)
+Conclusión: el reparto real no está siguiendo la intención estadística del modelo.
+Horario laboral configurado en CitySimulation.gaml (line 60) a CitySimulation.gaml (line 63):
+start_work: 6-8
+end_work: 16-20
+delayed_start: 0-30 min (CitySimulation.gaml (line 2296))
+Ventana temporal real de la ejecución:
+La simulación arranca a las 06:59:59 (CitySimulation.gaml (line 49))
+En tus logs llega hasta ~18:30 (11.5h desde inicio)
+Por diseño, salidas de trabajo a 19-20h no entran en esta corrida.
+Problema que señalas (vuelta del trabajo)
+
+Hipótesis confirmada con datos:
+Viajes working: 807 (personas únicas con ida al trabajo)
+Viajes resting (proxy de vuelta a casa): 85
+Personas con ida al trabajo que también tienen vuelta resting: 14/807 = 1.7%
+775/807 trabajadores se quedan con solo el viaje de ida en logs.
+Últimas horas (16-18h reloj simulado):
+Total inicios: 201
+accompany: 84
+resting: 71
+Ocio (go_cafe/go_bar/go_shopping/...): 46
+Muy poca vuelta de trabajadores reales, pese a que debería aparecer un segundo pico de commuting.
+Además, por modo de ida al trabajo:
+train: 431 trabajadores, con vuelta detectada en solo 1
+car: 108, vuelta en 1
+taxi: 71, vuelta en 2
+walking: 197, vuelta en 10
+Posibles causas de código (coherentes con la discrepancia)
+
+Trigger de vuelta demasiado rígido en CitySimulation.gaml (line 2709):
+Solo dispara si coincide exactamente hour == end_work y minute == delayed_start y stopped.
+Si no cumple justo ese minuto, pierde la vuelta de ese día.
+Dependencia de stopped:
+time_to_go_home exige stopped (CitySimulation.gaml (line 2709)).
+En el flujo final de tren se cierra viaje pero no se marca stopped <- true (CitySimulation.gaml (line 1407), CitySimulation.gaml (line 1408)), lo que puede bloquear la vuelta.
+Sesgo de logging en coche:
+El coche normal lleva como pasajeros solo activity_partners (CitySimulation.gaml (line 2913)).
+Al llegar, solo cierra viaje para passengers (CitySimulation.gaml (line 1841) a CitySimulation.gaml (line 1847)).
+Esto puede infra-registrar viajes de quien “conduce” y distorsionar reparto modal/retornos.

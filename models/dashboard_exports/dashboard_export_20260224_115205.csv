@@ -1,0 +1,263 @@
+﻿export_time,section,item,category,value,value_text,unit,notes
+2026-02-24 11:52:05,meta,source_rows,trips/events,0.0,0/1151,count,trips_rows/events_rows
+2026-02-24 11:52:05,kpi,total_trips,,0.0,0,,
+2026-02-24 11:52:05,kpi,peak_active,,0.0,0,,
+2026-02-24 11:52:05,kpi,peak_time_h,,0.0,0.00,,
+2026-02-24 11:52:05,kpi,valley_non_zero,,0.0,0,,
+2026-02-24 11:52:05,kpi,avg_active,,0.0,0.00,,
+2026-02-24 11:52:05,kpi,p95_active,,0.0,0.00,,
+2026-02-24 11:52:05,kpi,taxi_trips,,203.0,203,,
+2026-02-24 11:52:05,kpi,taxi_avg_duration_min,,296.1,296.10,,
+2026-02-24 11:52:05,kpi,crosswalk_issues,,879.0,879,,
+2026-02-24 11:52:05,kpi,companion_issues,,255635.0,255635,,
+2026-02-24 11:52:05,kpi,events_rows,,1151.0,1151,,
+2026-02-24 11:52:05,kpi,home_return_work_ratio_pct,,95.6,95.6,,
+2026-02-24 11:52:05,kpi,work_home_gap,,337.0,337,,
+2026-02-24 11:52:05,kpi,trip_event_closure_pct,,86.9,86.9,,
+2026-02-24 11:52:05,mode_share,observed_share_pct,car,72.0375,,pct,
+2026-02-24 11:52:05,mode_share,expected_mixed_share_pct,car,67.81,,pct,
+2026-02-24 11:52:05,mode_share,expected_short_share_pct,car,57.1429,,pct,
+2026-02-24 11:52:05,mode_share,expected_long_share_pct,car,72.7273,,pct,
+2026-02-24 11:52:05,mode_share,delta_vs_mixed_pct_points,car,4.2275,,pct,
+2026-02-24 11:52:05,mode_share,observed_share_pct,walking,14.107,,pct,
+2026-02-24 11:52:05,mode_share,expected_mixed_share_pct,walking,12.7712,,pct,
+2026-02-24 11:52:05,mode_share,expected_short_share_pct,walking,40.4762,,pct,
+2026-02-24 11:52:05,mode_share,expected_long_share_pct,walking,0.0,,pct,
+2026-02-24 11:52:05,mode_share,delta_vs_mixed_pct_points,walking,1.3358,,pct,
+2026-02-24 11:52:05,mode_share,observed_share_pct,train,12.6104,,pct,
+2026-02-24 11:52:05,mode_share,expected_mixed_share_pct,train,16.5934,,pct,
+2026-02-24 11:52:05,mode_share,expected_short_share_pct,train,0.0,,pct,
+2026-02-24 11:52:05,mode_share,expected_long_share_pct,train,24.2424,,pct,
+2026-02-24 11:52:05,mode_share,delta_vs_mixed_pct_points,train,-3.983,,pct,
+2026-02-24 11:52:05,mode_share,observed_share_pct,taxi,1.2451,,pct,
+2026-02-24 11:52:05,mode_share,expected_mixed_share_pct,taxi,2.8254,,pct,
+2026-02-24 11:52:05,mode_share,expected_short_share_pct,taxi,2.381,,pct,
+2026-02-24 11:52:05,mode_share,expected_long_share_pct,taxi,3.0303,,pct,
+2026-02-24 11:52:05,mode_share,delta_vs_mixed_pct_points,taxi,-1.5803,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,6,1063.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,6,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,6,14.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,6,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,7,1977.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,7,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,7,26.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,7,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,8,2384.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,8,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,8,30.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,8,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,9,1100.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,9,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,9,15.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,9,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,10,614.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,10,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,10,8.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,10,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,11,361.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,11,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,11,5.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,11,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,12,132.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,12,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,12,2.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,12,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,16,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,16,3972.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,16,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,16,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,17,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,17,1585.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,17,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,17,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,18,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,18,1020.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,18,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,18,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,19,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,19,601.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,19,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,19,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,20,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,20,290.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,20,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,20,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,21,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,21,135.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,21,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,21,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,start_count,22,0.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,end_count,22,28.0,,count,
+2026-02-24 11:52:05,work_schedule_hist,target_start_pct,22,0.0,,pct,
+2026-02-24 11:52:05,work_schedule_hist,target_end_pct,22,0.0,,pct,
+2026-02-24 11:52:05,top_discrepancies,transport_vs_short_target,walking,26.37,,pct_points,sim_pct=14.11;target_pct=40.48;delta_pct=-26.37
+2026-02-24 11:52:05,top_discrepancies,transport_vs_short_target,car,14.89,,pct_points,sim_pct=72.04;target_pct=57.14;delta_pct=14.89
+2026-02-24 11:52:05,top_discrepancies,transport_vs_long_target,walking,14.11,,pct_points,sim_pct=14.11;target_pct=0.0;delta_pct=14.11
+2026-02-24 11:52:05,top_discrepancies,transport_vs_short_target,train,12.61,,pct_points,sim_pct=12.61;target_pct=0.0;delta_pct=12.61
+2026-02-24 11:52:05,top_discrepancies,transport_vs_long_target,train,11.63,,pct_points,sim_pct=12.61;target_pct=24.24;delta_pct=-11.63
+2026-02-24 11:52:05,top_discrepancies,age_range,45-49,2.85,,pct_points,sim_pct=5.84;target_pct=8.69;delta_pct=-2.85
+2026-02-24 11:52:05,top_discrepancies,age_range,95-99,2.34,,pct_points,sim_pct=2.59;target_pct=0.25;delta_pct=2.34
+2026-02-24 11:52:05,top_discrepancies,age_range,50-54,2.04,,pct_points,sim_pct=5.86;target_pct=7.9;delta_pct=-2.04
+2026-02-24 11:52:05,top_discrepancies,transport_vs_long_target,taxi,1.79,,pct_points,sim_pct=1.25;target_pct=3.03;delta_pct=-1.79
+2026-02-24 11:52:05,top_discrepancies,work_start_hour,8,1.24,,pct_points,sim_pct=31.24;target_pct=30.0;delta_pct=1.24
+2026-02-24 11:52:05,top_discrepancies,district,sur,1.21,,pct_points,sim_pct=15.29;target_pct=16.5;delta_pct=-1.21
+2026-02-24 11:52:05,top_discrepancies,district,zarzaquemada,0.9,,pct_points,sim_pct=23.53;target_pct=24.43;delta_pct=-0.9
+2026-02-24 11:52:05,top_discrepancies,district,fortuna,0.77,,pct_points,sim_pct=7.55;target_pct=6.78;delta_pct=0.77
+2026-02-24 11:52:05,top_discrepancies,work_start_hour,9,0.59,,pct_points,sim_pct=14.41;target_pct=15.0;delta_pct=-0.59
+2026-02-24 11:52:05,top_discrepancies,gender,male,0.43,,pct_points,sim_pct=48.43;target_pct=48.0;delta_pct=0.43
+2026-02-24 11:52:05,top_discrepancies,gender,female,0.43,,pct_points,sim_pct=51.57;target_pct=52.0;delta_pct=-0.43
+2026-02-24 11:52:05,top_discrepancies,work_start_hour,12,0.27,,pct_points,sim_pct=1.73;target_pct=2.0;delta_pct=-0.27
+2026-02-24 11:52:05,top_discrepancies,household_size,1 persona,0.02,,pct_points,sim_pct=22.28;target_pct=22.3;delta_pct=-0.02
+2026-02-24 11:52:05,top_discrepancies,household_size,2 personas,0.01,,pct_points,sim_pct=30.5;target_pct=30.49;delta_pct=0.01
+2026-02-24 11:52:05,top_discrepancies,household_size,4 personas,0.01,,pct_points,sim_pct=18.58;target_pct=18.58;delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_size,1 persona,869.0,,count,sim_pct=22.28;target_pct=22.3;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_size,2 personas,1190.0,,count,sim_pct=30.5;target_pct=30.49;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_size,4 personas,725.0,,count,sim_pct=18.58;target_pct=18.58;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_size,5 o mas personas,250.0,,count,sim_pct=6.41;target_pct=6.41;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_size,3 personas,867.0,,count,sim_pct=22.23;target_pct=22.23;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,gender,male,4843.0,,count,sim_pct=48.43;target_pct=48.0;delta_pct=0.43;abs_delta_pct=0.43
+2026-02-24 11:52:05,population_monitor,gender,female,5157.0,,count,sim_pct=51.57;target_pct=52.0;delta_pct=-0.43;abs_delta_pct=0.43
+2026-02-24 11:52:05,population_monitor,age_range,45-49,584.0,,count,sim_pct=5.84;target_pct=8.69;delta_pct=-2.85;abs_delta_pct=2.85
+2026-02-24 11:52:05,population_monitor,age_range,95-99,259.0,,count,sim_pct=2.59;target_pct=0.25;delta_pct=2.34;abs_delta_pct=2.34
+2026-02-24 11:52:05,population_monitor,age_range,50-54,586.0,,count,sim_pct=5.86;target_pct=7.9;delta_pct=-2.04;abs_delta_pct=2.04
+2026-02-24 11:52:05,population_monitor,age_range,25-29,763.0,,count,sim_pct=7.63;target_pct=5.93;delta_pct=1.7;abs_delta_pct=1.7
+2026-02-24 11:52:05,population_monitor,age_range,40-44,629.0,,count,sim_pct=6.29;target_pct=7.95;delta_pct=-1.66;abs_delta_pct=1.66
+2026-02-24 11:52:05,population_monitor,age_range,90-94,258.0,,count,sim_pct=2.58;target_pct=0.93;delta_pct=1.65;abs_delta_pct=1.65
+2026-02-24 11:52:05,population_monitor,age_range,0-4,523.0,,count,sim_pct=5.23;target_pct=3.92;delta_pct=1.31;abs_delta_pct=1.31
+2026-02-24 11:52:05,population_monitor,age_range,60-64,492.0,,count,sim_pct=4.92;target_pct=6.04;delta_pct=-1.12;abs_delta_pct=1.12
+2026-02-24 11:52:05,population_monitor,age_range,30-34,733.0,,count,sim_pct=7.33;target_pct=6.34;delta_pct=0.99;abs_delta_pct=0.99
+2026-02-24 11:52:05,population_monitor,age_range,10-14,436.0,,count,sim_pct=4.36;target_pct=5.35;delta_pct=-0.99;abs_delta_pct=0.99
+2026-02-24 11:52:05,population_monitor,age_range,85-89,271.0,,count,sim_pct=2.71;target_pct=1.84;delta_pct=0.87;abs_delta_pct=0.87
+2026-02-24 11:52:05,population_monitor,age_range,35-39,595.0,,count,sim_pct=5.95;target_pct=6.77;delta_pct=-0.82;abs_delta_pct=0.82
+2026-02-24 11:52:05,population_monitor,age_range,80-84,324.0,,count,sim_pct=3.24;target_pct=2.43;delta_pct=0.81;abs_delta_pct=0.81
+2026-02-24 11:52:05,population_monitor,age_range,70-74,358.0,,count,sim_pct=3.58;target_pct=4.34;delta_pct=-0.76;abs_delta_pct=0.76
+2026-02-24 11:52:05,population_monitor,age_range,55-59,672.0,,count,sim_pct=6.72;target_pct=7.12;delta_pct=-0.4;abs_delta_pct=0.4
+2026-02-24 11:52:05,population_monitor,age_range,100-120,42.0,,count,sim_pct=0.42;target_pct=0.03;delta_pct=0.39;abs_delta_pct=0.39
+2026-02-24 11:52:05,population_monitor,age_range,20-24,572.0,,count,sim_pct=5.72;target_pct=5.42;delta_pct=0.3;abs_delta_pct=0.3
+2026-02-24 11:52:05,population_monitor,age_range,15-19,550.0,,count,sim_pct=5.5;target_pct=5.34;delta_pct=0.16;abs_delta_pct=0.16
+2026-02-24 11:52:05,population_monitor,age_range,5-9,496.0,,count,sim_pct=4.96;target_pct=4.81;delta_pct=0.15;abs_delta_pct=0.15
+2026-02-24 11:52:05,population_monitor,age_range,75-79,353.0,,count,sim_pct=3.53;target_pct=3.68;delta_pct=-0.15;abs_delta_pct=0.15
+2026-02-24 11:52:05,population_monitor,age_range,65-69,504.0,,count,sim_pct=5.04;target_pct=4.94;delta_pct=0.1;abs_delta_pct=0.1
+2026-02-24 11:52:05,population_monitor,district,sur,419.0,,count,sim_pct=15.29;target_pct=16.5;delta_pct=-1.21;abs_delta_pct=1.21
+2026-02-24 11:52:05,population_monitor,district,zarzaquemada,645.0,,count,sim_pct=23.53;target_pct=24.43;delta_pct=-0.9;abs_delta_pct=0.9
+2026-02-24 11:52:05,population_monitor,district,fortuna,207.0,,count,sim_pct=7.55;target_pct=6.78;delta_pct=0.77;abs_delta_pct=0.77
+2026-02-24 11:52:05,population_monitor,district,norte,340.0,,count,sim_pct=12.4;target_pct=11.64;delta_pct=0.76;abs_delta_pct=0.76
+2026-02-24 11:52:05,population_monitor,district,carrascal,488.0,,count,sim_pct=17.8;target_pct=17.36;delta_pct=0.44;abs_delta_pct=0.44
+2026-02-24 11:52:05,population_monitor,district,san nicasio,451.0,,count,sim_pct=16.45;target_pct=16.38;delta_pct=0.07;abs_delta_pct=0.07
+2026-02-24 11:52:05,population_monitor,district,polvoranca,191.0,,count,sim_pct=6.97;target_pct=6.91;delta_pct=0.06;abs_delta_pct=0.06
+2026-02-24 11:52:05,population_monitor,work_start_hour,8,2384.0,,count,sim_pct=31.24;target_pct=30.0;delta_pct=1.24;abs_delta_pct=1.24
+2026-02-24 11:52:05,population_monitor,work_start_hour,9,1100.0,,count,sim_pct=14.41;target_pct=15.0;delta_pct=-0.59;abs_delta_pct=0.59
+2026-02-24 11:52:05,population_monitor,work_start_hour,12,132.0,,count,sim_pct=1.73;target_pct=2.0;delta_pct=-0.27;abs_delta_pct=0.27
+2026-02-24 11:52:05,population_monitor,work_start_hour,11,361.0,,count,sim_pct=4.73;target_pct=5.0;delta_pct=-0.27;abs_delta_pct=0.27
+2026-02-24 11:52:05,population_monitor,work_start_hour,7,1977.0,,count,sim_pct=25.91;target_pct=26.0;delta_pct=-0.09;abs_delta_pct=0.09
+2026-02-24 11:52:05,population_monitor,work_start_hour,6,1063.0,,count,sim_pct=13.93;target_pct=14.0;delta_pct=-0.07;abs_delta_pct=0.07
+2026-02-24 11:52:05,population_monitor,work_start_hour,10,614.0,,count,sim_pct=8.05;target_pct=8.0;delta_pct=0.05;abs_delta_pct=0.05
+2026-02-24 11:52:05,population_monitor,transport_vs_short_target,walking,0.0,,count,sim_pct=14.11;target_pct=40.48;delta_pct=-26.37;abs_delta_pct=26.37
+2026-02-24 11:52:05,population_monitor,transport_vs_short_target,car,0.0,,count,sim_pct=72.04;target_pct=57.14;delta_pct=14.89;abs_delta_pct=14.89
+2026-02-24 11:52:05,population_monitor,transport_vs_short_target,train,0.0,,count,sim_pct=12.61;target_pct=0.0;delta_pct=12.61;abs_delta_pct=12.61
+2026-02-24 11:52:05,population_monitor,transport_vs_short_target,taxi,0.0,,count,sim_pct=1.25;target_pct=2.38;delta_pct=-1.14;abs_delta_pct=1.14
+2026-02-24 11:52:05,population_monitor,transport_vs_long_target,walking,0.0,,count,sim_pct=14.11;target_pct=0.0;delta_pct=14.11;abs_delta_pct=14.11
+2026-02-24 11:52:05,population_monitor,transport_vs_long_target,train,0.0,,count,sim_pct=12.61;target_pct=24.24;delta_pct=-11.63;abs_delta_pct=11.63
+2026-02-24 11:52:05,population_monitor,transport_vs_long_target,taxi,0.0,,count,sim_pct=1.25;target_pct=3.03;delta_pct=-1.79;abs_delta_pct=1.79
+2026-02-24 11:52:05,population_monitor,transport_vs_long_target,car,0.0,,count,sim_pct=72.04;target_pct=72.73;delta_pct=-0.69;abs_delta_pct=0.69
+2026-02-24 11:52:05,population_monitor,household_size_breakdown,1 persona,869.0,,count,sim_pct=22.28;target_pct=22.3;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_size_breakdown,2 personas,1190.0,,count,sim_pct=30.5;target_pct=30.49;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_size_breakdown,3 personas,867.0,,count,sim_pct=22.23;target_pct=22.23;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_size_breakdown,4 personas,725.0,,count,sim_pct=18.58;target_pct=18.58;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_size_breakdown,5 o mas personas,250.0,,count,sim_pct=6.41;target_pct=6.41;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con un hombre solo de 65 años o más,95.0,,count,sim_pct=10.93;target_pct=10.98;delta_pct=-0.05;abs_delta_pct=0.05
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con un hombre solo menor de 65 años,242.0,,count,sim_pct=27.85;target_pct=27.78;delta_pct=0.07;abs_delta_pct=0.07
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con una mujer sola de 65 años o más,332.0,,count,sim_pct=38.2;target_pct=38.18;delta_pct=0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,1 persona | Hogar con una mujer sola menor de 65 años,200.0,,count,sim_pct=23.01;target_pct=23.06;delta_pct=-0.05;abs_delta_pct=0.05
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,127.0,,count,sim_pct=44.1;target_pct=44.1;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,161.0,,count,sim_pct=55.9;target_pct=55.9;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,2 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,90.0,,count,sim_pct=76.27;target_pct=76.05;delta_pct=0.22;abs_delta_pct=0.22
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,28.0,,count,sim_pct=23.73;target_pct=23.95;delta_pct=-0.22;abs_delta_pct=0.22
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,3 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,12.0,,count,sim_pct=85.71;target_pct=83.33;delta_pct=2.38;abs_delta_pct=2.38
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,2.0,,count,sim_pct=14.29;target_pct=16.67;delta_pct=-2.38;abs_delta_pct=2.38
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,4 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,3.0,,count,sim_pct=60.0;target_pct=93.75;delta_pct=-33.75;abs_delta_pct=33.75
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,2.0,,count,sim_pct=40.0;target_pct=6.25;delta_pct=33.75;abs_delta_pct=33.75
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_structure_focus_by_size,5 o mas personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con un hombre solo de 65 años o más,95.0,,count,sim_pct=2.44;target_pct=2.45;delta_pct=-0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con un hombre solo menor de 65 años,242.0,,count,sim_pct=6.2;target_pct=6.19;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con un solo progenitor que convive con algún hijo menor de 25 años,232.0,,count,sim_pct=5.95;target_pct=5.91;delta_pct=0.03;abs_delta_pct=0.03
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,193.0,,count,sim_pct=4.95;target_pct=4.91;delta_pct=0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con una mujer sola de 65 años o más,332.0,,count,sim_pct=8.51;target_pct=8.51;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type,Hogar con una mujer sola menor de 65 años,200.0,,count,sim_pct=5.13;target_pct=5.14;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_type,Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,975.0,,count,sim_pct=24.99;target_pct=25.02;delta_pct=-0.03;abs_delta_pct=0.03
+2026-02-24 11:52:05,population_monitor,household_type,Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,299.0,,count,sim_pct=7.66;target_pct=7.67;delta_pct=-0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_type,Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),255.0,,count,sim_pct=6.54;target_pct=6.56;delta_pct=-0.03;abs_delta_pct=0.03
+2026-02-24 11:52:05,population_monitor,household_type,Hogar formado por pareja sin hijos,808.0,,count,sim_pct=20.71;target_pct=20.71;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type,Otro tipo de hogar,270.0,,count,sim_pct=6.92;target_pct=6.91;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con un hombre solo de 65 años o más,95.0,,count,sim_pct=10.93;target_pct=10.98;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con un hombre solo menor de 65 años,242.0,,count,sim_pct=27.85;target_pct=27.78;delta_pct=0.07;abs_delta_pct=0.07
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con una mujer sola de 65 años o más,332.0,,count,sim_pct=38.2;target_pct=38.18;delta_pct=0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar con una mujer sola menor de 65 años,200.0,,count,sim_pct=23.01;target_pct=23.06;delta_pct=-0.05;abs_delta_pct=0.05
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Hogar formado por pareja sin hijos,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,1 persona | Otro tipo de hogar,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,127.0,,count,sim_pct=10.67;target_pct=10.65;delta_pct=0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,161.0,,count,sim_pct=13.53;target_pct=13.5;delta_pct=0.03;abs_delta_pct=0.03
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Hogar formado por pareja sin hijos,808.0,,count,sim_pct=67.9;target_pct=67.92;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_type_by_size,2 personas | Otro tipo de hogar,94.0,,count,sim_pct=7.9;target_pct=7.94;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,90.0,,count,sim_pct=10.38;target_pct=10.38;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,28.0,,count,sim_pct=3.23;target_pct=3.27;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,366.0,,count,sim_pct=42.21;target_pct=42.26;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,240.0,,count,sim_pct=27.68;target_pct=27.69;delta_pct=-0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),35.0,,count,sim_pct=4.04;target_pct=4.0;delta_pct=0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Hogar formado por pareja sin hijos,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,3 personas | Otro tipo de hogar,108.0,,count,sim_pct=12.46;target_pct=12.42;delta_pct=0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,12.0,,count,sim_pct=1.66;target_pct=1.6;delta_pct=0.05;abs_delta_pct=0.05
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,2.0,,count,sim_pct=0.28;target_pct=0.32;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,526.0,,count,sim_pct=72.55;target_pct=72.56;delta_pct=-0.01;abs_delta_pct=0.01
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,56.0,,count,sim_pct=7.72;target_pct=7.75;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),85.0,,count,sim_pct=11.72;target_pct=11.77;delta_pct=-0.04;abs_delta_pct=0.04
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Hogar formado por pareja sin hijos,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,4 personas | Otro tipo de hogar,44.0,,count,sim_pct=6.07;target_pct=6.01;delta_pct=0.06;abs_delta_pct=0.06
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con un hombre solo de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con un hombre solo menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con un solo progenitor que convive con algún hijo menor de 25 años,3.0,,count,sim_pct=1.2;target_pct=0.97;delta_pct=0.23;abs_delta_pct=0.23
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con un solo progenitor que convive con todos sus hijos de 25 años o más,2.0,,count,sim_pct=0.8;target_pct=0.06;delta_pct=0.74;abs_delta_pct=0.74
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con una mujer sola de 65 años o más,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar con una mujer sola menor de 65 años,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar formado por pareja con hijos en donde algún hijo es menor de 25 años,83.0,,count,sim_pct=33.2;target_pct=33.63;delta_pct=-0.43;abs_delta_pct=0.43
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar formado por pareja con hijos en donde todos los hijos de 25 años o más,3.0,,count,sim_pct=1.2;target_pct=1.27;delta_pct=-0.07;abs_delta_pct=0.07
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar formado por pareja o un solo progenitor que convive con algún hijo menor de 25 años y otra(s) persona(s),135.0,,count,sim_pct=54.0;target_pct=54.49;delta_pct=-0.49;abs_delta_pct=0.49
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Hogar formado por pareja sin hijos,0.0,,count,sim_pct=0.0;target_pct=0.0;delta_pct=0.0;abs_delta_pct=0.0
+2026-02-24 11:52:05,population_monitor,household_type_by_size,5 o mas personas | Otro tipo de hogar,24.0,,count,sim_pct=9.6;target_pct=9.57;delta_pct=0.03;abs_delta_pct=0.03

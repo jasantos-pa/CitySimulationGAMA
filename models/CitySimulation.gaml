@@ -58,9 +58,39 @@ global {
 	
 	// Parameters for person generation
 	int minWorkStart <- 6;
-	int maxWorkStart <- 8;
-	int minWorkEnd <- 16;
-	int maxWorkEnd <- 20;
+	int maxWorkStart <- 12;
+	int minWorkEnd <- 15;
+	int maxWorkEnd <- 22;
+	// Non-uniform work schedule distributions (high mass in 6-8, smooth tail to 12)
+	map<string, float> workStartHourProbabilities <- [
+	    "6" :: 0.14,
+	    "7" :: 0.26,
+	    "8" :: 0.30,
+	    "9" :: 0.15,
+	    "10" :: 0.08,
+	    "11" :: 0.05,
+	    "12" :: 0.02
+	];
+	// Afternoon return distribution (15-22) with peaks at 16-17
+	map<string, float> workEndHourProbabilities <- [
+	    "15" :: 0.16,
+	    "16" :: 0.24,
+	    "17" :: 0.24,
+	    "18" :: 0.16,
+	    "19" :: 0.10,
+	    "20" :: 0.05,
+	    "21" :: 0.03,
+	    "22" :: 0.02
+	];
+	// Shift length distribution in hours (used to derive end_work from start_work)
+	map<string, float> workDurationHourProbabilities <- [
+	    "6" :: 0.03,
+	    "7" :: 0.12,
+	    "8" :: 0.36,
+	    "9" :: 0.30,
+	    "10" :: 0.14,
+	    "11" :: 0.05
+	];
 	float minSpeed <- 1.0  #km / #h; // km/h
 	float maxSpeed <- 5.0 #km / #h;  // km/h
 	
@@ -137,6 +167,11 @@ global {
 	
 	// Simulation Logger
 	SimulationLogger simLogger <- nil;
+
+	// Population generation logging controls
+	bool verbose_population_logs <- false;
+	bool verbose_init_entity_logs <- false;
+	int population_progress_step <- 500;
 	
 	// Broken-vehicle removal delay
 	float broken_removal_minutes <- 3.0 #mn;
@@ -223,7 +258,9 @@ global {
 	    ] {
 	        geom_display <- shape;
 	        location <- geom_display.centroid;         // Location set as the centroid of the geometry.
-	        write "Building ID: " + " Location: " + location + " Shape: " + shape + " Name: " + buildingName + " Type: " + buildingType;
+	        if (verbose_init_entity_logs) {
+	            write "Building ID: " + " Location: " + location + " Shape: " + shape + " Name: " + buildingName + " Type: " + buildingType;
+	        }
 	    }
 	    
 	    create streets from: shapefileStreets {}       // Agents for pedestrian streets.
@@ -284,7 +321,7 @@ global {
     
     ask electricCars { do initialize; }  // Initialize electric cars.
     
-    residential_buildings <- building where (
+	    residential_buildings <- building where (
         each.buildingType = "residential" or 
         each.buildingType = "apartments" or 
         each.buildingType = "house" or 
@@ -295,10 +332,13 @@ global {
         each.buildingType = "detached" or 
         each.buildingType = "construction" or 
         each.buildingType = "yes"
-    );  // Residential buildings (collect).
-    
-    // Number of each household type
-    int numHouseholds <- createFamilies(0);
+	    );  // Residential buildings (collect).
+
+	    write("Population generation started. Target people: " + numPeople + ", progress step: " + population_progress_step);
+	    
+	    // Number of each household type
+	    int numHouseholds <- createFamilies(0);
+	    write("Population generation finished. People: " + length(Person) + ", households: " + numHouseholds);
 	int n1 <- length(households where (length(each.members) = 1));
 	int n2 <- length(households where (length(each.members) = 2));
 	int n3 <- length(households where (length(each.members) = 3));
@@ -317,6 +357,9 @@ global {
 	      + with_precision((n4 / totalHouseholds) * 100, 2) + " %");
 	write("Percentage of five-person households: " 
 	      + with_precision((n5 / totalHouseholds) * 100, 2) + " %");
+	if (simLogger != nil) {
+	    ask simLogger { do snapshot_population_and_reference; }
+	}
 	}
 	
 	reflex update_time {
@@ -375,17 +418,65 @@ global {
 	    partner.partner <- newPartner;
 	    return newPartner;
 	}
+
+	list<Person> infer_household_core_members(string household_type_label, list<Person> members) {
+	    list<Person> core <- [];
+	    if (members = nil or empty(members)) { return core; }
+	    string ht <- lower_case(household_type_label as string);
+	    bool is_single_parent <- ht contains "progenitor";
+	    bool is_couple <- ht contains "pareja";
+	    bool has_children <- ht contains "hijo";
+	    bool has_other_persons <- ht contains "otra";
+	
+	    if (is_single_parent or (is_couple and has_children) or has_other_persons) {
+	        loop p over: members {
+	            bool is_parent <- (p.children != nil and !empty(p.children));
+	            bool is_child <- (p.father != nil or p.mother != nil);
+	            if ((is_parent or is_child) and !(p in core)) { core <- core + p; }
+	        }
+	        loop p over: members {
+	            if (p.partner != nil and (p.partner in core) and !(p in core)) { core <- core + p; }
+	        }
+	    }
+	
+	    if (empty(core) and is_couple) {
+	        loop p over: members {
+	            if (p.partner != nil and !(p in core)) { core <- core + p; }
+	        }
+	    }
+	
+	    if (empty(core) and (ht contains "solo" or ht contains "sola")) { core <- [members[0]]; }
+	    if (empty(core)) { core <- list<Person>(members); }
+	    return core;
+	}
 	
 	int createFamilies(int s) {
 	    // Counter for the total number of households created
 	    int totalHouseholdsCreated <- 0;
 	    // Helper variable for the selected household type
 	    string selectedHouseholdType <- "";
+	    int progress_interval <- max(1, population_progress_step);
+	    int next_progress <- progress_interval;
+	    int loop_iterations <- 0;
 	    
 	    // Loop: create households until the total number of people reaches numPeople
 	    loop while: length(Person) < numPeople {
+	        loop_iterations <- loop_iterations + 1;
+	        int remainingPeople <- numPeople - length(Person);
 	        // Choose household size based on global probabilities
 	        unknown numMembers <- rnd_choice(householdStructureProbabilities);
+	        // Keep population generation consistent with the exact requested total
+	        if (remainingPeople <= 1) {
+	            numMembers <- "1 persona";
+	        } else if (remainingPeople = 2) {
+	            numMembers <- "2 personas";
+	        } else if (remainingPeople = 3) {
+	            numMembers <- "3 personas";
+	        } else if (remainingPeople = 4) {
+	            numMembers <- "4 personas";
+	        } else if (remainingPeople = 5) {
+	            numMembers <- "5 o mÃ¡s personas";
+	        }
 	        list<Person> householdMembers <- [];
 	        // Initialize a new household with basic parameters
 	        create Household number: 1 returns: household {
@@ -415,8 +506,10 @@ global {
 	                }
 	            }
 	        }
-	        // Debug: output the chosen number of members
-	        write("nb: " + numMembers);
+	        // Optional detailed tracing of household sampling
+	        if (verbose_population_logs) {
+	            write("nb: " + numMembers);
+	        }
 	        // Create household members according to the number of persons
 	        if (numMembers = "1 persona") {
 	            // Single-person household
@@ -597,9 +690,29 @@ global {
 	        
 	        // Assign members and type to the newly created household
 	        household[0].members <- list<Person>(householdMembers);
+	        list<Person> householdCoreMembers <- infer_household_core_members(selectedHouseholdType, householdMembers);
+	        list<string> householdCoreRefs <- [];
+	        loop p over: householdCoreMembers {
+	            if (p != nil and p.name != nil and !(p.name in householdCoreRefs)) {
+	                householdCoreRefs <- householdCoreRefs + p.name;
+	            }
+	        }
+	        household[0].nucleusMemberRefs <- householdCoreRefs;
 	        household[0].householdType <- selectedHouseholdType;
 	        households <- households + household;
 	        totalHouseholdsCreated <- totalHouseholdsCreated + 1;
+	        
+	        int current_people <- length(Person);
+	        if ((loop_iterations mod progress_interval) = 0 and current_people < next_progress) {
+	            write("Population generation heartbeat: people " + current_people + "/" + numPeople
+	                + ", households: " + length(households) + ", iterations: " + loop_iterations);
+	        }
+	        if (current_people >= next_progress or current_people = numPeople) {
+	            float pct <- with_precision((current_people * 100.0) / max(numPeople, 1), 2);
+	            write("Population generation progress: " + current_people + "/" + numPeople
+	                + " (" + pct + "%), households: " + length(households));
+	            next_progress <- next_progress + progress_interval;
+	        }
 	    }
 	    // Debug: output total households created
 	    write("households: " + length(households));
@@ -609,6 +722,27 @@ global {
     ///////////////////////////////////////////////////////////////
 	// getPerson function: creates a person with his or her characteristics
 	///////////////////////////////////////////////////////////////
+	int sample_hour_from_probabilities(map<string, float> probs) {
+	    return (rnd_choice(probs) as_int 10);
+	}
+
+	int sample_end_hour_for_start(int start_work_hour) {
+	    int end_hour <- sample_hour_from_probabilities(workEndHourProbabilities);
+	    int guard <- 0;
+	    loop while: end_hour <= start_work_hour and guard < 12 {
+	        end_hour <- sample_hour_from_probabilities(workEndHourProbabilities);
+	        guard <- guard + 1;
+	    }
+	    if (end_hour <= start_work_hour) {
+	        int shiftDuration <- sample_hour_from_probabilities(workDurationHourProbabilities);
+	        end_hour <- start_work_hour + shiftDuration;
+	    }
+	    if (end_hour < minWorkEnd) { end_hour <- minWorkEnd; }
+	    if (end_hour > maxWorkEnd) { end_hour <- maxWorkEnd; }
+	    if (end_hour <= start_work_hour) { end_hour <- min(maxWorkEnd, start_work_hour + 1); }
+	    return end_hour;
+	}
+
 	Person getPerson(string sex, int minAge, int maxAge, list<Person> children, string householdType, Household household, bool decreasingBias) {
 	    // Adjust age limits based on the ages of provided children
 	    string motherMaxAgeRange;
@@ -655,14 +789,18 @@ global {
 	    int selectedIndex <- age_ranges index_of ageRange;
 	    age_counts[selectedIndex] <- age_counts[selectedIndex] + 1;
 	
-	    // Generate work schedule and sleep time
-	    int startWork <- rnd(minWorkStart, maxWorkStart);
-	    int endWork <- rnd(minWorkEnd, maxWorkEnd);
+	    // Generate work schedule and sleep time with non-uniform tails
+	    int startWork <- sample_hour_from_probabilities(workStartHourProbabilities);
+	    if (startWork < minWorkStart) { startWork <- minWorkStart; }
+	    if (startWork > maxWorkStart) { startWork <- maxWorkStart; }
+	    int endWork <- sample_end_hour_for_start(startWork);
 	    int hoursSleep <- rnd(7, 9);
 	    int calculatedBedtime <- (startWork - hoursSleep) > 0
 	        ? (startWork - hoursSleep)
 	        : (24 + (startWork - hoursSleep));
-	    write("start_work: " + startWork + " hours_sleep: " + hoursSleep + " bedtime: " + calculatedBedtime);
+	    if (verbose_population_logs) {
+	        write("start_work: " + startWork + " hours_sleep: " + hoursSleep + " bedtime: " + calculatedBedtime);
+	    }
 	
 	    // Random walking/driving speed
 	    float speedValue <- rnd(minSpeed, maxSpeed);
@@ -699,17 +837,19 @@ global {
 	    }
 	
 	    // Log a summary of the created Person
-	    write(
-	        "Person created with name " + p.name +
-	        " Age Range: "   + p.age_range +
-	        ", Gender: "     + p.gender +
-	        ", Age: "        + p.age +
-	        ", Start Work Hour: " + p.start_work +
-	        ", End Work Hour: "   + p.end_work +
-	        ", Speed: "      + p.speed +
-	        ", Living Place: " + p.living_place +
-	        ", Working Place: " + p.working_place
-	    );
+	    if (verbose_population_logs) {
+	        write(
+	            "Person created with name " + p.name +
+	            " Age Range: "   + p.age_range +
+	            ", Gender: "     + p.gender +
+	            ", Age: "        + p.age +
+	            ", Start Work Hour: " + p.start_work +
+	            ", End Work Hour: "   + p.end_work +
+	            ", Speed: "      + p.speed +
+	            ", Living Place: " + p.living_place +
+	            ", Working Place: " + p.working_place
+	        );
+	    }
 	    return p;
 	}
 }
@@ -1342,11 +1482,13 @@ species Household {
     string houseNumber;
     string householdType;       // Type of household (e.g., family structure)
     list<Person> members;       // List of persons in this household
+    list<string> nucleusMemberRefs; // References (names) of core household members
     string numberPersons;       // Number of members as string
     string district;            // District where the house is located
     building house;             // Reference to the building object
     init {
         members <- [];          // Initialize the members list
+        nucleusMemberRefs <- [];
     }
 }
 
@@ -1396,14 +1538,31 @@ species train skills: [driving] {
                 list<Person> passengersGettingOff <- passengersToSimulatedCity where(current_target.name contains (each.the_target.buildingName));
                 loop ps over: passengersGettingOff {
                     ps.the_target <- ps.the_final_target;
+                    ps.waitingForTrain <- false;
                     ps.startJourney <- true;
+                    if (simLogger != nil) {
+                        string alight_person <- ps.name;
+                        string alight_station <- current_target.name;
+                        ask simLogger {
+                            do log_event("TRAIN_ALIGHT_CONTINUE," + time + "," + alight_person + "," + alight_station + ",resume_to_final_target,0,0");
+                        }
+                    }
                 }
                 passengers <- passengers - passengersGettingOff;
             }
             else {
                 // Final destination reached: move all remaining passengers to target point
                 loop ps over: passengers {
-                    ps.location <- point(ps.the_final_target);
+                    if (ps.the_final_target != nil) {
+                        ps.location <- point(ps.the_final_target);
+                    }
+                    ps.waitingForTrain <- false;
+                    ps.startJourney <- false;
+                    ps.isMoving <- false;
+                    ps.stopped <- true;
+                    ask ps { do end_trip_log("COMPLETED"); }
+                    ps.the_target <- nil;
+                    ps.the_final_target <- nil;
                 }
                 passengers <- [];
             }
@@ -1837,9 +1996,11 @@ species normalCars parent: vehicles {
         } else {
             // Disembark passengers at destination
             loop p over: passengers {
-                p.location <- p.the_target.location;
-                p.the_target <- nil;
+                if (p.the_target != nil) {
+                    p.location <- p.the_target.location;
+                }
                 ask p { do end_trip_log("COMPLETED"); }
+                p.the_target <- nil;
                 p.stopped <- true;
             }
             do die;
@@ -2203,7 +2364,10 @@ species electricCars parent: vehicles {
                } else if (headingToDropOffPassenger) {
                    loop p over: passengers {
                        write "Dropping off passenger: " + p;
-                       p.location <- p.the_target.location;
+                       if (p.the_target != nil) {
+                           p.location <- p.the_target.location;
+                       }
+                       ask p { do end_trip_log("COMPLETED"); }
                        p.the_target <- nil;
                        p.stopped <- true;
                        passengers <- passengers - p;
@@ -2308,6 +2472,9 @@ species Person skills: [moving] {
     bool forcedWalkMode <- false;
     bool longDistance <- false;
     bool stopped <- true;
+    // Guards to avoid losing schedule triggers due exact-minute checks
+    int last_work_departure_day <- -1;
+    int last_home_return_day <- -1;
 
     // Variables specific to walker functionality
     bool isMoving <- false;
@@ -2339,23 +2506,35 @@ species Person skills: [moving] {
         current_trip_start_time <- time;
         // origin_type should ideally be updated when arrival happens, for the NEXT trip. 
         // For now let's just use what we have in current_origin_type
+        if (simLogger != nil) {
+            string target_name <- (the_target != nil and the_target.buildingName != nil) ? the_target.buildingName : "nil";
+            string start_details <- "mode:" + mode + "|purpose:" + purpose + "|origin_type:" + current_origin_type + "|target:" + target_name;
+            ask simLogger {
+                do log_event("TRIP_LOG_START," + time + "," + myself.name + "," + myself.current_trip_id + "," + start_details + ",0,0");
+            }
+        }
     }
 
     action end_trip_log(string status) {
         if (current_trip_id != nil and simLogger != nil) {
+            building destination <- (the_target != nil) ? the_target : the_final_target;
             string dest_type <- "unknown";
-            if (the_target != nil) { dest_type <- the_target.buildingType; }
+            if (destination != nil) { dest_type <- destination.buildingType; }
             
             float duration <- time - current_trip_start_time;
             string log_line <- name + "," + current_trip_id + "," + current_purpose + "," + current_trip_mode + "," + 
                                current_origin_type + "," + current_origin_geom.x + "," + current_origin_geom.y + "," + 
                                dest_type + "," + location.x + "," + location.y + "," + 
                                current_trip_start_time + "," + time + "," + duration + "," + status + ",0,0,0";
+            string end_details <- "status:" + status + "|mode:" + current_trip_mode + "|purpose:" + current_purpose + "|duration:" + duration;
             
-            ask simLogger { do log_trip(log_line); }
+            ask simLogger {
+                do log_trip(log_line);
+                do log_event("TRIP_LOG_END," + time + "," + myself.name + "," + myself.current_trip_id + "," + end_details + ",0,0");
+            }
             
             // Prepare for next trip
-            if (the_target != nil) { current_origin_type <- the_target.buildingType; }
+            if (destination != nil) { current_origin_type <- destination.buildingType; }
             current_trip_id <- nil;
         }
     }
@@ -2461,6 +2640,8 @@ species Person skills: [moving] {
 	    
 	    // If forced to walk and not a long distance
 	    if (forcedWalkMode) and !longDistance {
+	        formOfTransportation <- "walking";
+            if (current_trip_id = nil) { do start_trip_log("walking", objective); }
 	        startJourney <- true;
 	        newObjective <- false;
 	        forcedWalkMode <- false;
@@ -2474,6 +2655,16 @@ species Person skills: [moving] {
 	                "train" :: trainLongDistanceProbability,
 	                "taxi"  :: taxiLongDistanceProbability
 	            ]);	
+	            if (simLogger != nil) {
+	                string mode_details <- "distance_class:long|chosen:" + formOfTransportation
+	                    + "|p_walking:0"
+	                    + "|p_car:" + carLongDistanceProbability
+	                    + "|p_taxi:" + taxiLongDistanceProbability
+	                    + "|p_train:" + trainLongDistanceProbability;
+	                ask simLogger {
+	                    do log_event("MODE_CHOICE," + time + "," + myself.name + "," + myself.objective + "," + mode_details + ",0,0");
+	                }
+	            }
 	            if (formOfTransportation = "train") {
 	                list<building> l <- building where (self intersects each and each.buildingType = "city");
 	                if (length(l) > 0) { // Outside current simulation area, in another city l[0]
@@ -2496,10 +2687,17 @@ species Person skills: [moving] {
 	                            each.isTrainStation and each.nameTrainStation = station_name
 	                        ));
 	                    }
-	                    if (station != nil) {
-	                        station.waitingPassengers <- station.waitingPassengers + self;
-	                        waitingForTrain <- true;
-	                    }
+                    if (station != nil) {
+                        station.waitingPassengers <- station.waitingPassengers + self;
+                        waitingForTrain <- true;
+                        if (simLogger != nil) {
+                            string station_label <- station.name;
+                            ask simLogger {
+                                do log_event("TRAIN_QUEUE_ENTER," + time + "," + myself.name + "," + station_label + ",direct_city_transfer,0,0");
+                            }
+                        }
+                    }
+                        if (current_trip_id = nil) { do start_trip_log("train", objective); }
 	                    // Save final destination and update target to the train station
 	                    the_final_target <- the_target;
 	                    the_target <- building where (
@@ -2513,19 +2711,19 @@ species Person skills: [moving] {
 	                    ) closest_to self.location;
 	                    startJourney <- true; // Walking to the station
 	                    forcedWalkMode <- false;
-                        do start_trip_log("train", objective);
+                        if (current_trip_id = nil) { do start_trip_log("train", objective); }
 	                }
 	                contadorTrenes <- contadorTrenes + 1;
 	            }
 	            else if (formOfTransportation = "taxi") {
-                    do start_trip_log("taxi", objective);
+                    if (current_trip_id = nil) { do start_trip_log("taxi", objective); }
 	                ask taxiSwitchboard {
 	                    do requestTaxi(myself);
 	                }
 	                contadorTaxis <- contadorTaxis + 1;
 	            }
 	            else if (formOfTransportation = "car") {
-                    do start_trip_log("car", objective);
+                    if (current_trip_id = nil) { do start_trip_log("car", objective); }
 	                do instantiate_car;
 	                contadorCoches <- contadorCoches + 1;
 	            }
@@ -2542,14 +2740,24 @@ species Person skills: [moving] {
 	                "car"     :: carShortDistanceProbability,
 	                "taxi"    :: taxiShortDistanceProbability
 	            ]);	
+	            if (simLogger != nil) {
+	                string mode_details <- "distance_class:short|chosen:" + formOfTransportation
+	                    + "|p_walking:" + walkShortDistanceProbability
+	                    + "|p_car:" + carShortDistanceProbability
+	                    + "|p_taxi:" + taxiShortDistanceProbability
+	                    + "|p_train:0";
+	                ask simLogger {
+	                    do log_event("MODE_CHOICE," + time + "," + myself.name + "," + myself.objective + "," + mode_details + ",0,0");
+	                }
+	            }
 	            if (formOfTransportation = "car") {
-                    do start_trip_log("car", objective);
+                    if (current_trip_id = nil) { do start_trip_log("car", objective); }
 	                do instantiate_car;
 	                newObjective <- false;
 	                contadorCoches <- contadorCoches + 1;
 	            }
 	            else if (formOfTransportation = "taxi") {
-                    do start_trip_log("taxi", objective);
+                    if (current_trip_id = nil) { do start_trip_log("taxi", objective); }
 	                ask taxiSwitchboard {
 	                    do requestTaxi(myself);
 	                }
@@ -2557,7 +2765,7 @@ species Person skills: [moving] {
 	                contadorTaxis <- contadorTaxis + 1;
 	            }
 	            else if (formOfTransportation = "walking") {
-                    do start_trip_log("walking", objective);
+                    if (current_trip_id = nil) { do start_trip_log("walking", objective); }
 	                startJourney <- true;
 	                newObjective <- false;
 	                forcedWalkMode <- false;
@@ -2656,7 +2864,9 @@ species Person skills: [moving] {
         
         // 4. Arrival at destination
         if (finishPoint.location = self.location) {
-            location <- point(the_target);
+            if (the_target != nil) {
+                location <- point(the_target);
+            }
             isMoving <- false;
             
             // Releasing crossing if arriving exactly at a zebra
@@ -2667,7 +2877,9 @@ species Person skills: [moving] {
             }
             
             // If using train and arrival at station, enqueue at station
+            bool boardingTrainAtStation <- false;
             if (formOfTransportation = "train" 
+                and the_target != nil
                 and (the_target.railwayType = "station" or the_target.railwayType = "platform")
                 and (not waitingForTrain)) {
                 stationString <- (the_target.buildingName = "LeganÃƒÂ©s") 
@@ -2683,13 +2895,22 @@ species Person skills: [moving] {
                 if (station != nil) {
                     station.waitingPassengers <- station.waitingPassengers + self;
                     waitingForTrain <- true;
+                    boardingTrainAtStation <- true;
+                    if (simLogger != nil) {
+                        string station_label <- station.name;
+                        ask simLogger {
+                            do log_event("TRAIN_QUEUE_ENTER," + time + "," + myself.name + "," + station_label + ",arrived_station,0,0");
+                        }
+                    }
                 }
                 stationAgent <- station;
             }
             finishPoint <- nil;
             stopped <- true;
+            if (!boardingTrainAtStation) {
+                do end_trip_log("COMPLETED");
+            }
             the_target <- nil;
-            do end_trip_log("COMPLETED");
             isCrossing <- false;
             zebra_edges <- [];
         }
@@ -2698,21 +2919,48 @@ species Person skills: [moving] {
     /////////////////////////////////////////////////////////////
     // Reflexes for work, return home, and activities schedules
     /////////////////////////////////////////////////////////////
-    reflex time_to_work when: working_place != nil and current_date.hour = start_work and current_date.minute = delayed_start and objective = "resting" and stopped {
+    reflex time_to_work when: working_place != nil 
+                             and objective = "resting" 
+                             and stopped
+                             and last_work_departure_day != current_date.day
+                             and (current_date.hour > start_work or (current_date.hour = start_work and current_date.minute >= delayed_start)) {
         the_target <- working_place;
         objective <- "working";
         newObjective <- true;
+        last_work_departure_day <- current_date.day;
+        if (simLogger != nil) {
+            ask simLogger {
+                do log_event("SCHEDULE_WORK_DEPARTURE," + time + "," + myself.name + "," + myself.working_place.buildingType + ",start_work:" + myself.start_work + "|delay_min:" + myself.delayed_start + ",0,0");
+            }
+        }
     }
-    reflex time_to_go_home when: current_date.hour = end_work and current_date.minute = delayed_start and objective = "working" and stopped {
+    reflex time_to_go_home when: objective = "working" 
+                                and stopped
+                                and last_home_return_day != current_date.day
+                                and (current_date.hour > end_work or (current_date.hour = end_work and current_date.minute >= delayed_start)) {
         the_target <- living_place;
         objective <- "resting";
         newObjective <- true;
+        last_home_return_day <- current_date.day;
+        if (simLogger != nil) {
+            ask simLogger {
+                do log_event("SCHEDULE_HOME_RETURN," + time + "," + myself.name + "," + myself.living_place.buildingType + ",end_work:" + myself.end_work + "|delay_min:" + myself.delayed_start + ",0,0");
+            }
+        }
     }
-    reflex come_back_home_after_activity when: inActivity and current_date.hour = hourIsFree and current_date.minute = delayed_start and objective != "resting" and stopped {
+    reflex come_back_home_after_activity when: inActivity 
+                                              and objective != "resting" 
+                                              and stopped
+                                              and (current_date.hour > hourIsFree or (current_date.hour = hourIsFree and current_date.minute >= delayed_start)) {
         the_target <- living_place;
         objective <- "resting";
         inActivity <- false;
         newObjective <- true;
+        if (simLogger != nil) {
+            ask simLogger {
+                do log_event("SCHEDULE_ACTIVITY_RETURN," + time + "," + myself.name + "," + myself.living_place.buildingType + ",hour_is_free:" + myself.hourIsFree + "|delay_min:" + myself.delayed_start + ",0,0");
+            }
+        }
     }
     
     // Reflex to start activities based on age group
@@ -2906,8 +3154,10 @@ species Person skills: [moving] {
     /////////////////////////////////////////////////////////////
     action instantiate_car {
         if (objective != "accompany") {
+            list<Person> travelers <- [self] + activity_partners;
+            ask travelers { stopped <- false; }
             create normalCars {
-                passengers <- myself.activity_partners;
+                passengers <- travelers;
                 initialCrossroad <- (crossroads where !(each.crossroadsNoInitialLocation) at_distance 300 #meters closest_to(myself.location));
                 if (initialCrossroad = nil) {
                     initialCrossroad <- (crossroads where !(each.crossroadsNoInitialLocation) closest_to(myself.location));
@@ -3001,6 +3251,19 @@ species taxiSwitchboard {
         write "Se agregÃƒÂ³ la solicitud del pasajero " + p + " a la lista de viajes pendientes.";
         return true;
     }
+
+    // Periodic queue snapshot for SLA diagnostics in analyze_simulation.py
+    reflex queueSnapshot when: simLogger != nil and (cycle mod 50 = 0) {
+        float avgPendingWait <- (length(pendingTrips) > 0)
+            ? mean(pendingTrips collect (current_date - each.requestTime))
+            : 0.0;
+        ask simLogger {
+            do log_event(
+                "TAXI_QUEUE_SNAPSHOT," + time + ",switchboard,queue,"
+                + length(myself.pendingTrips) + "," + avgPendingWait + "," + myself.freeTaxis
+            );
+        }
+    }
     
     // Reflex to assign clients to free taxis
     reflex assignClient when: freeTaxis > 0 {
@@ -3070,6 +3333,8 @@ species SimulationLogger {
     // Configurable output file paths
     string trips_file <- "trips.csv";
     string events_file <- "events.csv";
+    string population_stats_file <- "population_stats.csv";
+    string reference_stats_file <- "reference_stats.csv";
 
     // Setup function to initialize files with headers
     action initialize_logs {
@@ -3077,6 +3342,10 @@ species SimulationLogger {
             to: trips_file rewrite: true;
         save "event_type,time,entity_id,related_id,details,extra_1,extra_2" 
             to: events_file rewrite: true;
+        save "metric_group,metric_name,metric_value,metric_unit,source" 
+            to: population_stats_file rewrite: true;
+        save "metric_group,metric_name,metric_value,metric_unit,source" 
+            to: reference_stats_file rewrite: true;
     }
 
     action log_trip(string log_entry) {
@@ -3085,6 +3354,142 @@ species SimulationLogger {
     
     action log_event(string log_entry) {
         event_logs <- event_logs + log_entry;
+    }
+
+    action log_population_metric(string group, string name, float value, string unit, string source) {
+        save group + "," + name + "," + value + "," + unit + "," + source
+            to: population_stats_file rewrite: false;
+    }
+
+    action log_reference_metric(string group, string name, float value, string unit, string source) {
+        save group + "," + name + "," + value + "," + unit + "," + source
+            to: reference_stats_file rewrite: false;
+    }
+
+    // Snapshot simulated population distributions and input/reference distributions.
+    // This is called once after population generation and does not alter model logic.
+    action snapshot_population_and_reference {
+        int total_people <- length(Person);
+        int total_households <- length(households);
+        int total_workers <- length(Person where (each.working_place != nil));
+
+        do log_population_metric("population", "total_people", total_people, "count", "simulation");
+        do log_population_metric("population", "total_households", total_households, "count", "simulation");
+        do log_population_metric("population", "total_workers", total_workers, "count", "simulation");
+
+        int hh1_count <- length(households where (length(each.members) = 1));
+        int hh2_count <- length(households where (length(each.members) = 2));
+        int hh3_count <- length(households where (length(each.members) = 3));
+        int hh4_count <- length(households where (length(each.members) = 4));
+        int hh5p_count <- length(households where (length(each.members) >= 5));
+        float hh1 <- (total_households > 0) ? hh1_count / total_households : 0.0;
+        float hh2 <- (total_households > 0) ? hh2_count / total_households : 0.0;
+        float hh3 <- (total_households > 0) ? hh3_count / total_households : 0.0;
+        float hh4 <- (total_households > 0) ? hh4_count / total_households : 0.0;
+        float hh5p <- (total_households > 0) ? hh5p_count / total_households : 0.0;
+        do log_population_metric("household_size_count", "1 persona", hh1_count, "count", "simulation");
+        do log_population_metric("household_size_count", "2 personas", hh2_count, "count", "simulation");
+        do log_population_metric("household_size_count", "3 personas", hh3_count, "count", "simulation");
+        do log_population_metric("household_size_count", "4 personas", hh4_count, "count", "simulation");
+        do log_population_metric("household_size_count", "5 o mas personas", hh5p_count, "count", "simulation");
+        do log_population_metric("household_size", "1 persona", hh1, "share", "simulation");
+        do log_population_metric("household_size", "2 personas", hh2, "share", "simulation");
+        do log_population_metric("household_size", "3 personas", hh3, "share", "simulation");
+        do log_population_metric("household_size", "4 personas", hh4, "share", "simulation");
+        do log_population_metric("household_size", "5 o mas personas", hh5p, "share", "simulation");
+
+        list<string> household_types <- [];
+        loop h over: households {
+            if (h.householdType != nil and h.householdType != "" and not (h.householdType in household_types)) {
+                household_types <- household_types + h.householdType;
+            }
+        }
+        loop htype over: household_types {
+            if (htype != nil and htype != "") {
+                int count <- length(households where (each.householdType = htype));
+                float share <- (total_households > 0) ? count / total_households : 0.0;
+                do log_population_metric("household_type_count", htype, count, "count", "simulation");
+                do log_population_metric("household_type", htype, share, "share", "simulation");
+            }
+        }
+
+        list<string> genders <- [];
+        loop p over: Person {
+            if (p.gender != nil and p.gender != "" and not (p.gender in genders)) {
+                genders <- genders + p.gender;
+            }
+        }
+        loop g over: genders {
+            if (g != nil and g != "") {
+                int count <- length(Person where (each.gender = g));
+                float share <- (total_people > 0) ? count / total_people : 0.0;
+                do log_population_metric("gender_count", g, count, "count", "simulation");
+                do log_population_metric("gender", g, share, "share", "simulation");
+            }
+        }
+
+        loop ar over: age_ranges {
+            int count <- length(Person where (each.age_range = ar));
+            float share <- (total_people > 0) ? count / total_people : 0.0;
+            do log_population_metric("age_range_count", ar, count, "count", "simulation");
+            do log_population_metric("age_range", ar, share, "share", "simulation");
+        }
+
+        loop d over: keys(districtDistributionProbabilities) {
+            int count <- length(households where (each.house != nil and each.house.district = d));
+            float share <- (total_households > 0) ? count / total_households : 0.0;
+            do log_population_metric("district_count", d, count, "count", "simulation");
+            do log_population_metric("district", d, share, "share", "simulation");
+        }
+
+        // Assigned work schedule distributions in generated population
+        loop hour from: 0 to: 23 {
+            int start_count <- length(Person where (each.working_place != nil and each.start_work = hour));
+            int end_count <- length(Person where (each.working_place != nil and each.end_work = hour));
+            if (start_count > 0) {
+                do log_population_metric("work_start_hour_count", string(hour), start_count, "count", "simulation");
+                do log_population_metric("work_start_hour_share", string(hour), (start_count * 1.0) / max(total_workers, 1), "share", "simulation");
+            }
+            if (end_count > 0) {
+                do log_population_metric("work_end_hour_count", string(hour), end_count, "count", "simulation");
+                do log_population_metric("work_end_hour_share", string(hour), (end_count * 1.0) / max(total_workers, 1), "share", "simulation");
+            }
+        }
+
+        do log_reference_metric("simulation_config", "num_people", numPeople, "count", "input");
+        do log_reference_metric("simulation_config", "number_of_electric_taxis", numberOfElectricCars, "count", "input");
+        do log_reference_metric("simulation_config", "step_minutes", step, "minutes", "input");
+        do log_reference_metric("transport_short_target", "walking", walkShortDistanceProbability, "share", "input");
+        do log_reference_metric("transport_short_target", "car", carShortDistanceProbability, "share", "input");
+        do log_reference_metric("transport_short_target", "taxi", taxiShortDistanceProbability, "share", "input");
+        do log_reference_metric("transport_long_target", "car", carLongDistanceProbability, "share", "input");
+        do log_reference_metric("transport_long_target", "train", trainLongDistanceProbability, "share", "input");
+        do log_reference_metric("transport_long_target", "taxi", taxiLongDistanceProbability, "share", "input");
+        loop k over: keys(workStartHourProbabilities) {
+            do log_reference_metric("work_start_target", k, workStartHourProbabilities[k], "share", "input");
+        }
+        loop k over: keys(workEndHourProbabilities) {
+            do log_reference_metric("work_end_target", k, workEndHourProbabilities[k], "share", "input");
+        }
+        loop k over: keys(workDurationHourProbabilities) {
+            do log_reference_metric("work_duration_target", k, workDurationHourProbabilities[k], "share", "input");
+        }
+
+        loop k over: keys(householdStructureProbabilities) {
+            do log_reference_metric("household_size_target", k, householdStructureProbabilities[k], "share", "db");
+        }
+        loop k over: keys(sexProbabilities) {
+            do log_reference_metric("gender_target", k, sexProbabilities[k], "share", "db");
+        }
+        loop k over: keys(ageGroupProbabilities) {
+            do log_reference_metric("age_range_target", k, ageGroupProbabilities[k], "share", "db");
+        }
+        loop k over: keys(districtDistributionProbabilities) {
+            do log_reference_metric("district_target", k, districtDistributionProbabilities[k], "share", "db");
+        }
+        loop k over: keys(orientationProbabilities) {
+            do log_reference_metric("orientation_target", k, orientationProbabilities[k], "share", "db");
+        }
     }
     
     reflex flush_logs when: (cycle mod 10 = 0) {

@@ -1,0 +1,67 @@
+metric_group,metric_name,metric_value,metric_unit,source
+simulation_config,num_people,10000,count,input
+simulation_config,number_of_electric_taxis,15,count,input
+simulation_config,step_minutes,2.88,minutes,input
+transport_short_target,walking,0.40476190476190477,share,input
+transport_short_target,car,0.5714285714285714,share,input
+transport_short_target,taxi,0.023809523809523808,share,input
+transport_long_target,car,0.7272727272727273,share,input
+transport_long_target,train,0.24242424242424243,share,input
+transport_long_target,taxi,0.030303030303030304,share,input
+work_start_target,6,0.14,share,input
+work_start_target,7,0.26,share,input
+work_start_target,8,0.3,share,input
+work_start_target,9,0.15,share,input
+work_start_target,10,0.08,share,input
+work_start_target,11,0.05,share,input
+work_start_target,12,0.02,share,input
+work_end_target,15,0.16,share,input
+work_end_target,16,0.24,share,input
+work_end_target,17,0.24,share,input
+work_end_target,18,0.16,share,input
+work_end_target,19,0.1,share,input
+work_end_target,20,0.05,share,input
+work_end_target,21,0.03,share,input
+work_end_target,22,0.02,share,input
+work_duration_target,6,0.03,share,input
+work_duration_target,7,0.12,share,input
+work_duration_target,8,0.36,share,input
+work_duration_target,9,0.3,share,input
+work_duration_target,10,0.14,share,input
+work_duration_target,11,0.05,share,input
+household_size_target,1 persona,0.22297848792972266,share,db
+household_size_target,2 personas,0.30494570104447677,share,db
+household_size_target,3 personas,0.2222591132323442,share,db
+household_size_target,4 personas,0.1857646814691845,share,db
+household_size_target,5 o mas personas,0.06405201632427199,share,db
+gender_target,male,0.48,share,db
+gender_target,female,0.52,share,db
+age_range_target,0-4,0.0392,share,db
+age_range_target,5-9,0.0481,share,db
+age_range_target,10-14,0.0535,share,db
+age_range_target,15-19,0.0534,share,db
+age_range_target,20-24,0.0542,share,db
+age_range_target,25-29,0.0593,share,db
+age_range_target,30-34,0.0634,share,db
+age_range_target,35-39,0.0677,share,db
+age_range_target,40-44,0.0795,share,db
+age_range_target,45-49,0.0869,share,db
+age_range_target,50-54,0.079,share,db
+age_range_target,55-59,0.0712,share,db
+age_range_target,60-64,0.0604,share,db
+age_range_target,65-69,0.0494,share,db
+age_range_target,70-74,0.0434,share,db
+age_range_target,75-79,0.0368,share,db
+age_range_target,80-84,0.0243,share,db
+age_range_target,85-89,0.0184,share,db
+age_range_target,90-94,0.0093,share,db
+age_range_target,95-99,0.0025,share,db
+age_range_target,100-120,3.0E-4,share,db
+district_target,Carrascal,17.36,share,db
+district_target,Fortuna,6.78,share,db
+district_target,Norte,11.64,share,db
+district_target,Polvoranca,6.91,share,db
+district_target,San Nicasio,16.38,share,db
+district_target,Sur,16.5,share,db
+district_target,Zarzaquemada,24.43,share,db
+orientation_target,0.989,0.011,share,db

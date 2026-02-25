@@ -1,0 +1,115 @@
+﻿export_time,section,item,category,value,value_text,unit,notes
+2026-02-18 11:16:39,meta,source_rows,trips/events,0.0,0/793,count,trips_rows/events_rows
+2026-02-18 11:16:39,kpi,total_trips,,0.0,0,,
+2026-02-18 11:16:39,kpi,peak_active,,0.0,0,,
+2026-02-18 11:16:39,kpi,peak_time_h,,0.0,0.00,,
+2026-02-18 11:16:39,kpi,valley_non_zero,,0.0,0,,
+2026-02-18 11:16:39,kpi,avg_active,,0.0,0.00,,
+2026-02-18 11:16:39,kpi,p95_active,,0.0,0.00,,
+2026-02-18 11:16:39,kpi,taxi_trips,,0.0,0,,
+2026-02-18 11:16:39,kpi,taxi_avg_duration_min,,0.0,0.00,,
+2026-02-18 11:16:39,kpi,crosswalk_issues,,0.0,0,,
+2026-02-18 11:16:39,kpi,companion_issues,,0.0,0,,
+2026-02-18 11:16:39,kpi,events_rows,,793.0,793,,
+2026-02-18 11:16:39,kpi,home_return_work_ratio_pct,,0.0,0.0,,
+2026-02-18 11:16:39,kpi,work_home_gap,,792.0,792,,
+2026-02-18 11:16:39,kpi,trip_event_closure_pct,,0.0,0.0,,
+2026-02-18 11:16:39,work_schedule_hist,start_count,6,792.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,6,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,6,14.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,7,1485.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,7,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,7,26.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,8,1689.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,8,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,8,30.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,9,910.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,9,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,9,15.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,10,433.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,10,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,10,8.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,11,290.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,11,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,11,5.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,12,110.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,12,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,12,2.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,16,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,16,3015.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,16,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,17,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,17,1123.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,17,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,18,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,18,769.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,18,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,19,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,19,432.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,19,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,20,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,20,249.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,20,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,21,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,21,86.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,21,0.0,,pct,
+2026-02-18 11:16:39,work_schedule_hist,start_count,22,0.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,end_count,22,35.0,,count,
+2026-02-18 11:16:39,work_schedule_hist,target_start_pct,22,0.0,,pct,
+2026-02-18 11:16:39,top_discrepancies,age_range,95-99,6.27,,pct_points,sim_pct=6.52;target_pct=0.25;delta_pct=6.27
+2026-02-18 11:16:39,top_discrepancies,age_range,90-94,5.65,,pct_points,sim_pct=6.58;target_pct=0.93;delta_pct=5.65
+2026-02-18 11:16:39,top_discrepancies,age_range,10-14,5.35,,pct_points,sim_pct=0.0;target_pct=5.35;delta_pct=-5.35
+2026-02-18 11:16:39,top_discrepancies,gender,female,1.0,,pct_points,sim_pct=53.0;target_pct=52.0;delta_pct=1.0
+2026-02-18 11:16:39,top_discrepancies,gender,male,1.0,,pct_points,sim_pct=47.0;target_pct=48.0;delta_pct=-1.0
+2026-02-18 11:16:39,top_discrepancies,district,carrascal,0.96,,pct_points,sim_pct=16.4;target_pct=17.36;delta_pct=-0.96
+2026-02-18 11:16:39,top_discrepancies,work_start_hour,9,0.94,,pct_points,sim_pct=15.94;target_pct=15.0;delta_pct=0.94
+2026-02-18 11:16:39,top_discrepancies,district,sur,0.67,,pct_points,sim_pct=17.17;target_pct=16.5;delta_pct=0.67
+2026-02-18 11:16:39,top_discrepancies,district,fortuna,0.58,,pct_points,sim_pct=7.36;target_pct=6.78;delta_pct=0.58
+2026-02-18 11:16:39,top_discrepancies,work_start_hour,10,0.42,,pct_points,sim_pct=7.58;target_pct=8.0;delta_pct=-0.42
+2026-02-18 11:16:39,top_discrepancies,work_start_hour,8,0.42,,pct_points,sim_pct=29.58;target_pct=30.0;delta_pct=-0.42
+2026-02-18 11:16:39,top_discrepancies,household_size,5 o mas personas,0.02,,pct_points,sim_pct=19.98;target_pct=20.0;delta_pct=-0.02
+2026-02-18 11:16:39,top_discrepancies,household_size,1 persona,0.01,,pct_points,sim_pct=20.01;target_pct=20.0;delta_pct=0.01
+2026-02-18 11:16:39,top_discrepancies,household_size,2 personas,0.01,,pct_points,sim_pct=20.01;target_pct=20.0;delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,household_size,5 o mas personas,666.0,,count,sim_pct=19.98;target_pct=20.0;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-18 11:16:39,population_monitor,household_size,1 persona,667.0,,count,sim_pct=20.01;target_pct=20.0;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,household_size,2 personas,667.0,,count,sim_pct=20.01;target_pct=20.0;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,household_size,3 personas,667.0,,count,sim_pct=20.01;target_pct=20.0;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,household_size,4 personas,667.0,,count,sim_pct=20.01;target_pct=20.0;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,gender,female,5300.0,,count,sim_pct=53.0;target_pct=52.0;delta_pct=1.0;abs_delta_pct=1.0
+2026-02-18 11:16:39,population_monitor,gender,male,4700.0,,count,sim_pct=47.0;target_pct=48.0;delta_pct=-1.0;abs_delta_pct=1.0
+2026-02-18 11:16:39,population_monitor,age_range,95-99,652.0,,count,sim_pct=6.52;target_pct=0.25;delta_pct=6.27;abs_delta_pct=6.27
+2026-02-18 11:16:39,population_monitor,age_range,90-94,658.0,,count,sim_pct=6.58;target_pct=0.93;delta_pct=5.65;abs_delta_pct=5.65
+2026-02-18 11:16:39,population_monitor,age_range,10-14,0.0,,count,sim_pct=0.0;target_pct=5.35;delta_pct=-5.35;abs_delta_pct=5.35
+2026-02-18 11:16:39,population_monitor,age_range,5-9,0.0,,count,sim_pct=0.0;target_pct=4.81;delta_pct=-4.81;abs_delta_pct=4.81
+2026-02-18 11:16:39,population_monitor,age_range,85-89,607.0,,count,sim_pct=6.07;target_pct=1.84;delta_pct=4.23;abs_delta_pct=4.23
+2026-02-18 11:16:39,population_monitor,age_range,0-4,0.0,,count,sim_pct=0.0;target_pct=3.92;delta_pct=-3.92;abs_delta_pct=3.92
+2026-02-18 11:16:39,population_monitor,age_range,80-84,608.0,,count,sim_pct=6.08;target_pct=2.43;delta_pct=3.65;abs_delta_pct=3.65
+2026-02-18 11:16:39,population_monitor,age_range,15-19,240.0,,count,sim_pct=2.4;target_pct=5.34;delta_pct=-2.94;abs_delta_pct=2.94
+2026-02-18 11:16:39,population_monitor,age_range,45-49,584.0,,count,sim_pct=5.84;target_pct=8.69;delta_pct=-2.85;abs_delta_pct=2.85
+2026-02-18 11:16:39,population_monitor,age_range,75-79,604.0,,count,sim_pct=6.04;target_pct=3.68;delta_pct=2.36;abs_delta_pct=2.36
+2026-02-18 11:16:39,population_monitor,age_range,50-54,599.0,,count,sim_pct=5.99;target_pct=7.9;delta_pct=-1.91;abs_delta_pct=1.91
+2026-02-18 11:16:39,population_monitor,age_range,40-44,631.0,,count,sim_pct=6.31;target_pct=7.95;delta_pct=-1.64;abs_delta_pct=1.64
+2026-02-18 11:16:39,population_monitor,age_range,70-74,577.0,,count,sim_pct=5.77;target_pct=4.34;delta_pct=1.43;abs_delta_pct=1.43
+2026-02-18 11:16:39,population_monitor,age_range,55-59,599.0,,count,sim_pct=5.99;target_pct=7.12;delta_pct=-1.13;abs_delta_pct=1.13
+2026-02-18 11:16:39,population_monitor,age_range,65-69,585.0,,count,sim_pct=5.85;target_pct=4.94;delta_pct=0.91;abs_delta_pct=0.91
+2026-02-18 11:16:39,population_monitor,age_range,35-39,594.0,,count,sim_pct=5.94;target_pct=6.77;delta_pct=-0.83;abs_delta_pct=0.83
+2026-02-18 11:16:39,population_monitor,age_range,20-24,606.0,,count,sim_pct=6.06;target_pct=5.42;delta_pct=0.64;abs_delta_pct=0.64
+2026-02-18 11:16:39,population_monitor,age_range,25-29,627.0,,count,sim_pct=6.27;target_pct=5.93;delta_pct=0.34;abs_delta_pct=0.34
+2026-02-18 11:16:39,population_monitor,age_range,30-34,627.0,,count,sim_pct=6.27;target_pct=6.34;delta_pct=-0.07;abs_delta_pct=0.07
+2026-02-18 11:16:39,population_monitor,age_range,100-120,0.0,,count,sim_pct=0.0;target_pct=0.03;delta_pct=-0.03;abs_delta_pct=0.03
+2026-02-18 11:16:39,population_monitor,age_range,60-64,602.0,,count,sim_pct=6.02;target_pct=6.04;delta_pct=-0.02;abs_delta_pct=0.02
+2026-02-18 11:16:39,population_monitor,district,carrascal,383.0,,count,sim_pct=16.4;target_pct=17.36;delta_pct=-0.96;abs_delta_pct=0.96
+2026-02-18 11:16:39,population_monitor,district,sur,401.0,,count,sim_pct=17.17;target_pct=16.5;delta_pct=0.67;abs_delta_pct=0.67
+2026-02-18 11:16:39,population_monitor,district,fortuna,172.0,,count,sim_pct=7.36;target_pct=6.78;delta_pct=0.58;abs_delta_pct=0.58
+2026-02-18 11:16:39,population_monitor,district,norte,267.0,,count,sim_pct=11.43;target_pct=11.64;delta_pct=-0.21;abs_delta_pct=0.21
+2026-02-18 11:16:39,population_monitor,district,san nicasio,381.0,,count,sim_pct=16.31;target_pct=16.38;delta_pct=-0.07;abs_delta_pct=0.07
+2026-02-18 11:16:39,population_monitor,district,zarzaquemada,570.0,,count,sim_pct=24.4;target_pct=24.43;delta_pct=-0.03;abs_delta_pct=0.03
+2026-02-18 11:16:39,population_monitor,district,polvoranca,162.0,,count,sim_pct=6.93;target_pct=6.91;delta_pct=0.02;abs_delta_pct=0.02
+2026-02-18 11:16:39,population_monitor,work_start_hour,9,910.0,,count,sim_pct=15.94;target_pct=15.0;delta_pct=0.94;abs_delta_pct=0.94
+2026-02-18 11:16:39,population_monitor,work_start_hour,10,433.0,,count,sim_pct=7.58;target_pct=8.0;delta_pct=-0.42;abs_delta_pct=0.42
+2026-02-18 11:16:39,population_monitor,work_start_hour,8,1689.0,,count,sim_pct=29.58;target_pct=30.0;delta_pct=-0.42;abs_delta_pct=0.42
+2026-02-18 11:16:39,population_monitor,work_start_hour,6,792.0,,count,sim_pct=13.87;target_pct=14.0;delta_pct=-0.13;abs_delta_pct=0.13
+2026-02-18 11:16:39,population_monitor,work_start_hour,11,290.0,,count,sim_pct=5.08;target_pct=5.0;delta_pct=0.08;abs_delta_pct=0.08
+2026-02-18 11:16:39,population_monitor,work_start_hour,12,110.0,,count,sim_pct=1.93;target_pct=2.0;delta_pct=-0.07;abs_delta_pct=0.07
+2026-02-18 11:16:39,population_monitor,work_start_hour,7,1485.0,,count,sim_pct=26.01;target_pct=26.0;delta_pct=0.01;abs_delta_pct=0.01
+2026-02-18 11:16:39,population_monitor,household_type,otro tipo de hogar,3334.0,,count,sim_pct=None;target_pct=None;delta_pct=None;abs_delta_pct=None
