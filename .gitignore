@@ -1,0 +1,9 @@
+/docs/
+/.gama*/
+**/.gama*/
+
+/models/*
+!/models/analyze_simulation.py
+!/models/dashboard_households.py
+!/models/dashboard_monitor.py
+!/models/CitySimulation-updated.gaml

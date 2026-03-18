@@ -39,19 +39,35 @@ def canon_category(group, name):
         if ("hom" in c) or ("male" in c) or ("varon" in c):
             return "male"
         return c
+    if "orientation" in g:
+        if ("hetero" in c) or ("opposite" in c):
+            return "heterosexual"
+        if ("homo" in c) or ("same sex" in c):
+            return "homosexual"
+        return c
+    if "couple_age_gap" in g:
+        if ("0-4" in c) or ("0 4" in c):
+            return "0-4"
+        if ("5-9" in c) or ("5 9" in c):
+            return "5-9"
+        if ("10-14" in c) or ("10 14" in c):
+            return "10-14"
+        if ("15+" in c) or ("15 +" in c) or ("15 or more" in c) or ("15 o mas" in c):
+            return "15+"
+        return c
     if "household_size" in g:
         if "total" in c:
             return ""
         if "1" in c:
-            return "1 persona"
+            return "1 person"
         if "2" in c:
-            return "2 personas"
+            return "2 persons"
         if "3" in c:
-            return "3 personas"
+            return "3 persons"
         if "4" in c:
-            return "4 personas"
+            return "4 persons"
         if "5" in c:
-            return "5 o mas personas"
+            return "5+ persons"
         return c
     return c
 
@@ -336,6 +352,31 @@ def train_transfer_flow(e):
     }
 
 
+def stuck_removals(e):
+    out = {"total": 0, "car": 0, "taxi": 0, "unknown": 0}
+    if e.empty or not {"event_type", "details", "entity_id", "related_id"}.issubset(e.columns):
+        return out
+    base = e[e["event_type"] == "ROUTE_STUCK_REMOVAL"].copy()
+    if base.empty:
+        return out
+    seen = set()
+    for _, row in base.iterrows():
+        entity = nk(row.get("entity_id", ""))
+        if not entity or entity in seen:
+            continue
+        seen.add(entity)
+        details = parse_details_map(row.get("details", ""))
+        agent = nk(details.get("agent", row.get("related_id", "")))
+        if agent in {"car", "normalcars", "normal_car", "vehicle_car"}:
+            out["car"] += 1
+        elif agent in {"taxi", "electriccars", "electric_car", "electriccar"}:
+            out["taxi"] += 1
+        else:
+            out["unknown"] += 1
+        out["total"] += 1
+    return out
+
+
 def active_profile(t):
     if t.empty or not {"start_time", "end_time"}.issubset(t.columns):
         return {}
@@ -423,18 +464,14 @@ def mode_expectation(e, r, observed_mode_shares):
             samples += 1
             if klass == "long":
                 long_count += 1
-    long_share = (long_count / samples) if samples > 0 else None
+    long_share = (long_count / samples) if samples > 0 else 0.5
     all_modes = sorted(set(observed_mode_shares.keys()) | set(short_target.keys()) | set(long_target.keys()))
     per_mode = {}
     for m in all_modes:
         exp_short = float(short_target.get(nk(m), 0.0))
         exp_long = float(long_target.get(nk(m), 0.0))
-        if long_share is None:
-            exp_mix = None
-            delta_mix = None
-        else:
-            exp_mix = (1.0 - long_share) * exp_short + long_share * exp_long
-            delta_mix = float(observed_mode_shares.get(m, 0.0) - exp_mix)
+        exp_mix = (1.0 - long_share) * exp_short + long_share * exp_long
+        delta_mix = float(observed_mode_shares.get(m, 0.0) - exp_mix)
         per_mode[m] = {
             "observed_share": float(observed_mode_shares.get(m, 0.0)),
             "expected_short_share": exp_short,
@@ -443,9 +480,8 @@ def mode_expectation(e, r, observed_mode_shares):
             "delta_vs_mixed": delta_mix,
         }
     mixed_target = {}
-    if long_share is not None:
-        for m in all_modes:
-            mixed_target[m] = per_mode[m]["expected_mixed_share"]
+    for m in all_modes:
+        mixed_target[m] = per_mode[m]["expected_mixed_share"]
     return {
         "samples": int(samples),
         "class_counts": {"short": int(samples - long_count), "long": int(long_count)},
@@ -516,6 +552,8 @@ def real_vs_sim(p, r, ms):
     comps = {
         "household_size": cmp_dist(dist(p, "household_size"), dist(r, "household_size_target")),
         "gender": cmp_dist(dist(p, "gender"), dist(r, "gender_target")),
+        "orientation": cmp_dist(dist(p, "orientation"), dist(r, "orientation_target")),
+        "couple_age_gap": cmp_dist(dist(p, "couple_age_gap"), dist(r, "couple_age_gap_target")),
         "age_range": cmp_dist(dist(p, "age_range"), dist(r, "age_range_target")),
         "district": cmp_dist(dist(p, "district"), dist(r, "district_target")),
         "work_start_hour": cmp_dist(dist(p, "work_start_hour_share"), dist(r, "work_start_target")),
@@ -577,6 +615,7 @@ def run():
     trip_evt = trip_event_lifecycle(e)
     sched = schedule_flow(e)
     train_flow = train_transfer_flow(e)
+    stuck_summary = stuck_removals(e)
     pmm = compute_purpose_mode_matrix(t)
     mode_exp = mode_expectation(e, r, ms)
     work_sched = work_schedule_assignment(p, r)
@@ -584,6 +623,8 @@ def run():
         "household_size": counts(p, "household_size_count"),
         "household_type": counts(p, "household_type_count"),
         "gender": counts(p, "gender_count"),
+        "orientation": counts(p, "orientation_count"),
+        "couple_age_gap": counts(p, "couple_age_gap_count"),
         "age_range": counts(p, "age_range_count"),
         "district": counts(p, "district_count"),
     }
@@ -606,6 +647,7 @@ def run():
         "trip_event_lifecycle": trip_evt,
         "schedule_flow": sched,
         "train_transfer_flow": train_flow,
+        "stuck_removals": stuck_summary,
         "work_schedule_assignment": work_sched,
         "population_counts": population_counts,
         "real_vs_sim": real_vs_sim(p, r, ms),
@@ -665,6 +707,12 @@ def run():
             f.write(f"- **Train queue entries**: {tf.get('queue_entries',0)}\n")
             f.write(f"- **Train alight+continue events**: {tf.get('alight_continue_events',0)}\n")
             f.write(f"- **Alight-after-queue ratio**: {tf.get('alight_after_queue_ratio',0)*100:.2f}%\n")
+        sr = report.get("stuck_removals", {})
+        if sr:
+            f.write("\n## Vehicle Stuck Removals\n")
+            f.write(f"- **Total removed after stuck**: {sr.get('total',0)}\n")
+            f.write(f"- **Cars removed**: {sr.get('car',0)}\n")
+            f.write(f"- **Taxis removed**: {sr.get('taxi',0)}\n")
         te = report["trip_event_lifecycle"]
         if te:
             f.write("\n## Trip Event Lifecycle\n")

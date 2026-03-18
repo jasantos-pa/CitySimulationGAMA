@@ -27,6 +27,14 @@ EVENTS_CSV = BASE_DIR / "events.csv"
 HOUSEHOLDS_CSV = BASE_DIR / "households.csv"
 DB_PATH = BASE_DIR.parent / "includes" / "SimuCityDB.db"
 HOUSEHOLD_TARGET_MUNICIPALITY_CODE = os.getenv("CITY_MUNICIPALITY_CODE", "28074")
+TRANSPORT_TARGET_MUNICIPALITY_CODE = os.getenv("CITY_MUNICIPALITY_CODE", "28074")
+TRANSPORT_MODE_ORDER = ["car", "train", "walking", "taxi"]
+TRIP_CLASS_FILTER_OPTIONS = [
+    {"label": "All Trips (Mixed)", "value": "all"},
+    {"label": "Short Trips", "value": "short"},
+    {"label": "Long Trips", "value": "long"},
+]
+# DB uses Spanish category keys for household statistics; keep raw keys for SQL and canonical matching.
 HOUSEHOLD_SIZE_ORDER = ["1 persona", "2 personas", "3 personas", "4 personas", "5 o mas personas"]
 HOUSEHOLD_STRUCTURE_FOCUS = [
     "Hogar con un hombre solo de 65 años o más",
@@ -36,6 +44,27 @@ HOUSEHOLD_STRUCTURE_FOCUS = [
     "Hogar con una mujer sola de 65 años o más",
     "Hogar con una mujer sola menor de 65 años",
 ]
+HOUSEHOLD_SIZE_DISPLAY = {
+    "1 persona": "1 person",
+    "2 personas": "2 persons",
+    "3 personas": "3 persons",
+    "4 personas": "4 persons",
+    "5 o mas personas": "5+ persons",
+}
+HOUSEHOLD_STRUCTURE_DISPLAY = {
+    "hogar con un hombre solo de 65 anos o mas": "Man living alone (65+)",
+    "hogar con un hombre solo menor de 65 anos": "Man living alone (<65)",
+    "hogar con un solo progenitor que convive con algun hijo menor de 25 anos": "Single parent with at least one child under 25",
+    "hogar con un solo progenitor que convive con todos sus hijos de 25 anos o mas": "Single parent with all children 25+",
+    "hogar con una mujer sola de 65 anos o mas": "Woman living alone (65+)",
+    "hogar con una mujer sola menor de 65 anos": "Woman living alone (<65)",
+    "hogar formado por pareja sin hijos": "Couple without children",
+    "hogar formado por pareja con hijos en donde algun hijo es menor de 25 anos": "Couple with children (at least one under 25)",
+    "hogar formado por pareja con hijos en donde todos los hijos de 25 anos o mas": "Couple with children (all 25+)",
+    "hogar formado por pareja o un solo progenitor que convive con algun hijo menor de 25 anos y otra(s) persona(s)": "Couple/single parent + child under 25 + others",
+    "otro tipo de hogar": "Other household type",
+    "total (estructura del hogar)": "Total (household structure)",
+}
 DASHBOARD_EXPORT_LATEST = BASE_DIR / "dashboard_export_latest.csv"
 DASHBOARD_EXPORTS_DIR = BASE_DIR / "dashboard_exports"
 
@@ -106,6 +135,18 @@ def nk(value):
     return " ".join(txt.replace(",", " ").split())
 
 
+def finite_float(value, default=0.0):
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return default
+    if pd.isna(v):
+        return default
+    if v == float("inf") or v == float("-inf"):
+        return default
+    return v
+
+
 def canonical_household_size_label(raw):
     s = nk(raw)
     if not s or "total" in s:
@@ -121,6 +162,33 @@ def canonical_household_size_label(raw):
     if "5" in s:
         return "5 o mas personas"
     return None
+
+
+def household_size_display_label(raw):
+    size_key = canonical_household_size_label(raw) if raw is not None else None
+    if size_key is None and raw is not None:
+        size_key = canonical_household_size_label(str(raw))
+    return HOUSEHOLD_SIZE_DISPLAY.get(size_key, str(raw) if raw is not None else "")
+
+
+def household_structure_display_label(raw):
+    label = "" if raw is None else str(raw).strip()
+    if not label:
+        return ""
+    return HOUSEHOLD_STRUCTURE_DISPLAY.get(nk(label), label)
+
+
+def household_category_display_label(raw):
+    text = "" if raw is None else str(raw).strip()
+    if not text:
+        return ""
+    if " | " in text:
+        size_label, structure_label = text.split(" | ", 1)
+        return f"{household_size_display_label(size_label)} | {household_structure_display_label(structure_label)}"
+    size_only = household_size_display_label(text)
+    if size_only:
+        return size_only
+    return household_structure_display_label(text)
 
 
 def load_households_registry():
@@ -206,9 +274,9 @@ def load_household_targets_from_db(municipality_code=HOUSEHOLD_TARGET_MUNICIPALI
     by_size_counts = {s: {} for s in out["size_order"]}
     by_size_totals = {s: 0.0 for s in out["size_order"]}
 
-    for tamano, estructura, total in rows:
-        size_raw = "" if tamano is None else str(tamano).strip()
-        struct_raw = "" if estructura is None else str(estructura).strip()
+    for size_bucket_db, structure_db, total in rows:
+        size_raw = "" if size_bucket_db is None else str(size_bucket_db).strip()
+        struct_raw = "" if structure_db is None else str(structure_db).strip()
         struct_key = nk(struct_raw)
         if not struct_key:
             continue
@@ -309,12 +377,12 @@ def load_household_size_targets_from_db_sql(municipality_code=HOUSEHOLD_TARGET_M
     except sqlite3.Error:
         return out
 
-    for tamano, total_hogares, porcentaje in rows:
-        size_label = canonical_household_size_label(tamano)
+    for size_bucket_db, total_households, percentage in rows:
+        size_label = canonical_household_size_label(size_bucket_db)
         if size_label is None:
             continue
-        count_value = float(total_hogares or 0.0)
-        pct_value = float(porcentaje or 0.0) / 100.0
+        count_value = float(total_households or 0.0)
+        pct_value = float(percentage or 0.0) / 100.0
         out["count_by_size"][size_label] = count_value
         out["pct_by_size"][size_label] = pct_value
 
@@ -347,7 +415,7 @@ def build_household_size_monitor_rows(households, municipality_code=HOUSEHOLD_TA
         rows.append(
             {
                 "dimension": "household_size_breakdown",
-                "category": size,
+                "category": household_size_display_label(size),
                 "count": sim_count,
                 "sim_pct": round(sim_pct, 2),
                 "target_pct": round(target_pct, 2),
@@ -437,17 +505,17 @@ def load_household_structure_focus_targets_from_db_sql(municipality_code=HOUSEHO
     except sqlite3.Error:
         return out
 
-    for tamano, estructura, hogares, porcentaje in rows:
-        size_label = canonical_household_size_label(tamano)
+    for size_bucket_db, structure_db, households_count, percentage in rows:
+        size_label = canonical_household_size_label(size_bucket_db)
         if size_label is None:
             continue
-        struct_label = str(estructura or "").strip()
+        struct_label = str(structure_db or "").strip()
         if not struct_label:
             continue
         struct_key = nk(struct_label)
         out["display_labels"][struct_key] = struct_label
-        out["by_size_count"][size_label][struct_key] = float(hogares or 0.0)
-        out["by_size_pct"][size_label][struct_key] = float(porcentaje or 0.0) / 100.0
+        out["by_size_count"][size_label][struct_key] = float(households_count or 0.0)
+        out["by_size_pct"][size_label][struct_key] = float(percentage or 0.0) / 100.0
 
     return out
 
@@ -490,11 +558,11 @@ def build_household_structure_focus_rows(households, municipality_code=HOUSEHOLD
             count = int(sim_by_size_counts.get(size, {}).get(sk, 0))
             sim_pct = (100.0 * count / sim_den) if sim_den > 0 else 0.0
             target_pct = 100.0 * float(targets.get("by_size_pct", {}).get(size, {}).get(sk, 0.0))
-            display = targets.get("display_labels", {}).get(sk, label)
+            display = household_structure_display_label(targets.get("display_labels", {}).get(sk, label))
             rows.append(
                 {
                     "dimension": "household_structure_focus_by_size",
-                    "category": f"{size} | {display}",
+                    "category": f"{household_size_display_label(size)} | {display}",
                     "count": count,
                     "sim_pct": round(sim_pct, 2),
                     "target_pct": round(target_pct, 2),
@@ -559,7 +627,7 @@ def build_household_structure_monitor_rows(households, municipality_code=HOUSEHO
         rows.append(
             {
                 "dimension": "household_type",
-                "category": labels.get(sk, sk),
+                "category": household_structure_display_label(labels.get(sk, sk)),
                 "count": count,
                 "sim_pct": round(sim_pct, 2),
                 "target_pct": round(target_pct, 2),
@@ -578,7 +646,7 @@ def build_household_structure_monitor_rows(households, municipality_code=HOUSEHO
             rows.append(
                 {
                     "dimension": "household_type_by_size",
-                    "category": f"{size} | {labels.get(sk, sk)}",
+                    "category": f"{household_size_display_label(size)} | {household_structure_display_label(labels.get(sk, sk))}",
                     "count": count,
                     "sim_pct": round(sim_pct, 2),
                     "target_pct": round(target_pct, 2),
@@ -600,6 +668,622 @@ def safe_mode_shares(report, trips):
     return counts
 
 
+def parse_details_map(details):
+    out = {}
+    txt = "" if details is None else str(details)
+    for token in txt.split("|"):
+        token = token.strip()
+        if ":" not in token:
+            continue
+        k, v = token.split(":", 1)
+        out[nk(k)] = v.strip()
+    return out
+
+
+def canonical_route_agent(raw):
+    key = nk(raw)
+    if key in {"person", "walker", "walking", "person_walking"}:
+        return "person_walking"
+    if key in {"car", "car_private", "normal_car", "normalcars", "vehicle_car"}:
+        return "car"
+    return None
+
+
+def canonical_route_result(raw):
+    key = nk(raw)
+    if "started_without_route" in key or "without_helper" in key:
+        return "started_without_route"
+    if "first" in key:
+        return "first_try_success"
+    if "recover" in key or ("retry" in key and "fail" not in key):
+        return "recovered_after_retries"
+    if "fail" in key or "abort" in key:
+        return "failed_after_retries"
+    return None
+
+
+def canonical_stuck_agent(raw):
+    key = nk(raw)
+    if key in {"car", "normal_car", "normalcars", "vehicle_car", "car_private"}:
+        return "car"
+    if key in {"taxi", "electric_car", "electriccars", "electriccar"}:
+        return "taxi"
+    return "unknown"
+
+
+def compute_stuck_removal_summary(events):
+    summary = {"total": 0, "car": 0, "taxi": 0, "unknown": 0}
+    if events is None or events.empty or "event_type" not in events.columns:
+        return summary
+
+    ev = events.copy()
+    ev["event_type"] = ev["event_type"].astype(str).str.strip().str.upper()
+    ev = ev[ev["event_type"] == "ROUTE_STUCK_REMOVAL"]
+    if ev.empty:
+        return summary
+
+    seen = set()
+    for _, row in ev.iterrows():
+        entity = nk(row.get("entity_id", ""))
+        if not entity or entity in seen:
+            continue
+        seen.add(entity)
+        details = parse_details_map(row.get("details", ""))
+        agent_raw = details.get("agent", row.get("related_id", ""))
+        agent = canonical_stuck_agent(agent_raw)
+        summary[agent] = int(summary.get(agent, 0)) + 1
+        summary["total"] += 1
+    return summary
+
+
+def looks_like_car_vehicle_id(raw):
+    key = nk(raw)
+    return key.startswith("normalcars")
+
+
+def looks_like_taxi_vehicle_id(raw):
+    key = nk(raw)
+    return key.startswith("electriccars")
+
+
+def compute_runtime_vehicle_pool(events):
+    summary = {"total": 0, "car": 0, "taxi": 0}
+    if events is None or events.empty or "entity_id" not in events.columns:
+        return summary
+
+    entity_raw = events["entity_id"].astype(str).str.strip()
+    entity_lower = entity_raw.str.lower()
+    valid_mask = (entity_raw != "") & (~entity_lower.isin({"global", "switchboard", "queue"}))
+    if not valid_mask.any():
+        return summary
+
+    valid_entities = entity_lower[valid_mask]
+    car_prefix = valid_entities[valid_entities.str.startswith("normalcars")]
+    taxi_prefix = valid_entities[valid_entities.str.startswith("electriccars")]
+
+    # Fast path: current logs use stable vehicle id prefixes.
+    car_ids = set(car_prefix.unique().tolist())
+    taxi_ids = set(taxi_prefix.unique().tolist())
+    if car_ids or taxi_ids:
+        summary["car"] = len(car_ids)
+        summary["taxi"] = len(taxi_ids)
+        summary["total"] = summary["car"] + summary["taxi"]
+        return summary
+
+    # Compatibility fallback for legacy logs without standard prefixes.
+    cols = [c for c in ["event_type", "entity_id", "related_id", "details"] if c in events.columns]
+    fallback = events.loc[valid_mask, cols].copy()
+    if fallback.empty:
+        return summary
+
+    if "event_type" in fallback.columns:
+        evt = fallback["event_type"].astype(str).str.strip().str.upper()
+    else:
+        evt = pd.Series([""] * len(fallback), index=fallback.index)
+    if "related_id" in fallback.columns:
+        rel = fallback["related_id"].astype(str).str.strip().str.lower()
+    else:
+        rel = pd.Series([""] * len(fallback), index=fallback.index)
+
+    candidate_mask = rel.isin({"car", "taxi"}) | evt.str.startswith("ROUTE_") | evt.str.startswith("TAXI_")
+    if not candidate_mask.any():
+        return summary
+
+    for _, row in fallback.loc[candidate_mask].iterrows():
+        entity = nk(row.get("entity_id", ""))
+        if not entity:
+            continue
+        details = parse_details_map(row.get("details", ""))
+        agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
+        related = nk(row.get("related_id", ""))
+
+        if agent == "car" or looks_like_car_vehicle_id(entity):
+            car_ids.add(entity)
+            continue
+        if agent == "taxi" or related == "taxi" or looks_like_taxi_vehicle_id(entity):
+            taxi_ids.add(entity)
+            continue
+
+    summary["car"] = len(car_ids)
+    summary["taxi"] = len(taxi_ids)
+    summary["total"] = summary["car"] + summary["taxi"]
+    return summary
+
+
+def compute_stuck_removal_rows(events):
+    if events is None or events.empty or "event_type" not in events.columns:
+        return []
+
+    ev = events.copy()
+    ev["event_type"] = ev["event_type"].astype(str).str.strip().str.upper()
+    ev = ev[ev["event_type"] == "ROUTE_STUCK_REMOVAL"]
+    if ev.empty:
+        return []
+
+    rows = []
+    for _, row in ev.iterrows():
+        details = parse_details_map(row.get("details", ""))
+        agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
+        phase = details.get("phase", "")
+        t_s = finite_float(row.get("time", 0.0), 0.0)
+        stuck_min = finite_float(details.get("stuck_minutes", None), None)
+        threshold_min = finite_float(details.get("threshold_minutes", None), None)
+        stuck_start_time = finite_float(details.get("stuck_start_time", None), None)
+        rows.append(
+            {
+                "time_s": round(t_s, 2),
+                "time_h": round(t_s / 3600.0, 2),
+                "vehicle_id": str(row.get("entity_id", "")),
+                "agent": agent,
+                "phase": str(phase) if str(phase).strip() else "-",
+                "stuck_min": round(stuck_min, 2) if stuck_min is not None else None,
+                "threshold_min": round(threshold_min, 2) if threshold_min is not None else None,
+                "stuck_start_s": round(stuck_start_time, 2) if stuck_start_time is not None else None,
+            }
+        )
+
+    rows.sort(key=lambda r: finite_float(r.get("time_s", 0.0), 0.0), reverse=True)
+    return rows
+
+
+def compute_route_planning_rows(events):
+    base_counts = {
+        "person_walking": {
+            "first_try_success": 0,
+            "recovered_after_retries": 0,
+            "started_without_route": 0,
+            "failed_after_retries": 0,
+            "attempts_sum": 0.0,
+            "attempts_n": 0,
+        },
+        "car": {
+            "first_try_success": 0,
+            "recovered_after_retries": 0,
+            "started_without_route": 0,
+            "failed_after_retries": 0,
+            "attempts_sum": 0.0,
+            "attempts_n": 0,
+        },
+    }
+    if events is None or events.empty or "event_type" not in events.columns:
+        return [], {}
+
+    ev_all = events.copy()
+    ev_all["event_type"] = ev_all["event_type"].astype(str).str.strip().str.upper()
+
+    # Backward-compatible tag: old runs reported this case in ROUTE_EXEC/LEGACY_FALLBACK only.
+    started_without_route_entities = set()
+    legacy_exec = ev_all[ev_all["event_type"] == "ROUTE_EXEC"]
+    for _, row in legacy_exec.iterrows():
+        d = parse_details_map(row.get("details", ""))
+        if canonical_route_agent(d.get("agent", "")) != "person_walking":
+            continue
+        rk = nk(d.get("result", ""))
+        if "started_without_helper_path" in rk or "started_without_route" in rk:
+            entity = nk(row.get("entity_id", ""))
+            if entity:
+                started_without_route_entities.add(entity)
+
+    legacy_fallback = ev_all[ev_all["event_type"] == "ROUTE_PLAN_LEGACY_FALLBACK"]
+    for _, row in legacy_fallback.iterrows():
+        entity = nk(row.get("entity_id", ""))
+        if entity:
+            started_without_route_entities.add(entity)
+
+    ev = ev_all[ev_all["event_type"] == "ROUTE_PLAN"]
+    if ev.empty:
+        return [], {}
+
+    seen = set()
+    for _, row in ev.iterrows():
+        details = parse_details_map(row.get("details", ""))
+        agent = canonical_route_agent(details.get("agent", ""))
+        result = canonical_route_result(details.get("result", ""))
+        if agent is None or result is None:
+            continue
+        entity = nk(row.get("entity_id", ""))
+        if agent == "person_walking" and result == "failed_after_retries" and entity in started_without_route_entities:
+            result = "started_without_route"
+        attempts = int(finite_float(details.get("attempts", 0.0), 0.0))
+        time_bin = round(finite_float(row.get("time", 0.0), 0.0), 2)
+        dedup_key = (agent, entity, result, attempts, time_bin)
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        base_counts[agent][result] += 1
+        attempts_f = finite_float(details.get("attempts", None), None)
+        if attempts_f is not None:
+            base_counts[agent]["attempts_sum"] += attempts_f
+            base_counts[agent]["attempts_n"] += 1
+
+    rows = []
+    summary = {}
+    labels = {"person_walking": "Person (walking)", "car": "Car trips"}
+    for agent in ["person_walking", "car"]:
+        c = base_counts[agent]
+        failed_hard = int(c["failed_after_retries"])
+        started_without_route = int(c["started_without_route"])
+        failed_total = failed_hard + started_without_route
+        total = int(c["first_try_success"] + c["recovered_after_retries"] + failed_total)
+        if total <= 0:
+            continue
+        first_pct = 100.0 * c["first_try_success"] / total
+        recovered_pct = 100.0 * c["recovered_after_retries"] / total
+        failed_pct = 100.0 * failed_total / total
+        avg_attempts = (c["attempts_sum"] / c["attempts_n"]) if c["attempts_n"] > 0 else 0.0
+        rows.append(
+            {
+                "agent": labels.get(agent, agent),
+                "samples": total,
+                "first_try_count": int(c["first_try_success"]),
+                "recovered_count": int(c["recovered_after_retries"]),
+                "started_without_route_count": int(started_without_route),
+                "failed_no_route_count": int(failed_hard),
+                "failed_count": int(failed_total),
+                "first_try_pct": round(first_pct, 2),
+                "recovered_pct": round(recovered_pct, 2),
+                "failed_pct": round(failed_pct, 2),
+                "avg_attempts": round(avg_attempts, 2),
+            }
+        )
+        summary[agent] = {
+            "samples": total,
+            "first_try_count": int(c["first_try_success"]),
+            "recovered_count": int(c["recovered_after_retries"]),
+            "started_without_route_count": int(started_without_route),
+            "failed_no_route_count": int(failed_hard),
+            "failed_count": int(failed_total),
+            "first_try_pct": first_pct,
+            "recovered_pct": recovered_pct,
+            "failed_pct": failed_pct,
+            "avg_attempts": avg_attempts,
+        }
+    return rows, summary
+
+
+def route_planning_figure(route_plan_rows):
+    if not route_plan_rows:
+        fig = go.Figure()
+        fig.add_annotation(text="No ROUTE_PLAN data", showarrow=False, font={"size": 16})
+        fig.update_layout(template="plotly_white", margin={"l": 20, "r": 20, "t": 40, "b": 20})
+        return fig
+
+    agents = [str(r.get("agent", "")) for r in route_plan_rows]
+    first = [finite_float(r.get("first_try_pct", 0.0), 0.0) for r in route_plan_rows]
+    recovered = [finite_float(r.get("recovered_pct", 0.0), 0.0) for r in route_plan_rows]
+    failed = [finite_float(r.get("failed_pct", 0.0), 0.0) for r in route_plan_rows]
+    samples = [int(finite_float(r.get("samples", 0), 0.0)) for r in route_plan_rows]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(name="First try", x=agents, y=first, marker_color="#2ca02c"))
+    fig.add_trace(go.Bar(name="Recovered", x=agents, y=recovered, marker_color="#ffbf00"))
+    fig.add_trace(go.Bar(name="Failed", x=agents, y=failed, marker_color="#d62728"))
+    fig.update_layout(
+        title="Route Planning Outcomes by Agent",
+        template="plotly_white",
+        barmode="stack",
+        yaxis_title="Share (%)",
+        xaxis_title="Agent",
+        margin={"l": 40, "r": 20, "t": 50, "b": 40},
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0.0},
+        hoverlabel={"font": {"size": 14}},
+    )
+    fig.update_traces(
+        customdata=[[s] for s in samples],
+        hovertemplate="%{x}<br>%{fullData.name}: %{y:.2f}%<br>Samples: %{customdata[0]}<extra></extra>",
+    )
+    return fig
+
+
+def build_route_cancel_rows(trips, route_plan_summary, events, stuck_summary=None, vehicle_pool=None, stuck_rows=None):
+    rows = []
+    total_trips = int(len(trips)) if trips is not None and not trips.empty else 0
+
+    aborted = 0
+    aborted_no_route = 0
+    car_trips = 0
+    taxi_trips = 0
+    if total_trips > 0 and "status" in trips.columns:
+        st = trips["status"].astype(str).str.strip().str.upper()
+        aborted = int(st.str.startswith("ABORTED").sum())
+        aborted_no_route = int(st.str.contains("NO_ROUTE", regex=False).sum())
+    if total_trips > 0 and "mode" in trips.columns:
+        md = trips["mode"].astype(str).str.strip().str.lower()
+        car_trips = int((md == "car").sum())
+        taxi_trips = int((md == "taxi").sum())
+
+    rows.append(
+        {
+            "scope": "Trips (executed)",
+            "metric": "Cancelled (ABORTED_*)",
+            "count": aborted,
+            "pct": round((100.0 * aborted / total_trips), 2) if total_trips > 0 else 0.0,
+            "denominator": total_trips,
+        }
+    )
+    rows.append(
+        {
+            "scope": "Trips (executed)",
+            "metric": "Cancelled: no route",
+            "count": aborted_no_route,
+            "pct": round((100.0 * aborted_no_route / total_trips), 2) if total_trips > 0 else 0.0,
+            "denominator": total_trips,
+        }
+    )
+
+    if stuck_summary is None:
+        stuck_summary = compute_stuck_removal_summary(events)
+    if vehicle_pool is None:
+        vehicle_pool = compute_runtime_vehicle_pool(events)
+    vehicle_den = int(vehicle_pool.get("total", 0))
+    car_vehicle_den = int(vehicle_pool.get("car", 0))
+    taxi_vehicle_den = int(vehicle_pool.get("taxi", 0))
+
+    # Fallback for old logs with weak vehicle-id coverage
+    if vehicle_den <= 0:
+        vehicle_den = car_trips + taxi_trips
+    if car_vehicle_den <= 0:
+        car_vehicle_den = car_trips
+    if taxi_vehicle_den <= 0:
+        taxi_vehicle_den = taxi_trips
+
+    rows.append(
+        {
+            "scope": "Vehicles (runtime unique IDs)",
+            "metric": "Removed after stuck > 5 min",
+            "count": int(stuck_summary.get("total", 0)),
+            "pct": round((100.0 * int(stuck_summary.get("total", 0)) / vehicle_den), 2) if vehicle_den > 0 else 0.0,
+            "denominator": vehicle_den,
+        }
+    )
+    rows.append(
+        {
+            "scope": "Car vehicles (runtime unique IDs)",
+            "metric": "Removed after stuck > 5 min",
+            "count": int(stuck_summary.get("car", 0)),
+            "pct": round((100.0 * int(stuck_summary.get("car", 0)) / car_vehicle_den), 2) if car_vehicle_den > 0 else 0.0,
+            "denominator": car_vehicle_den,
+        }
+    )
+    rows.append(
+        {
+            "scope": "Taxi vehicles (runtime unique IDs)",
+            "metric": "Removed after stuck > 5 min",
+            "count": int(stuck_summary.get("taxi", 0)),
+            "pct": round((100.0 * int(stuck_summary.get("taxi", 0)) / taxi_vehicle_den), 2) if taxi_vehicle_den > 0 else 0.0,
+            "denominator": taxi_vehicle_den,
+        }
+    )
+
+    if stuck_rows is None:
+        stuck_rows = compute_stuck_removal_rows(events)
+    valid_stuck_rows = [r for r in stuck_rows if r.get("stuck_min") is not None and r.get("threshold_min") is not None]
+    below_threshold = int(sum(1 for r in valid_stuck_rows if float(r["stuck_min"]) + 1e-9 < float(r["threshold_min"])))
+    rows.append(
+        {
+            "scope": "Stuck removal data quality",
+            "metric": "Removed below threshold (should be 0)",
+            "count": below_threshold,
+            "pct": round((100.0 * below_threshold / len(valid_stuck_rows)), 2) if len(valid_stuck_rows) > 0 else 0.0,
+            "denominator": len(valid_stuck_rows),
+        }
+    )
+
+    for agent_key, label in [("person_walking", "Walking route planning"), ("car", "Car route planning")]:
+        s = (route_plan_summary or {}).get(agent_key, {}) or {}
+        samples = int(s.get("samples", 0))
+        rec_count = int(s.get("recovered_count", 0))
+        fail_count = int(s.get("failed_count", 0))
+        started_without_route = int(s.get("started_without_route_count", 0))
+        hard_fail_count = max(0, int(s.get("failed_no_route_count", fail_count - started_without_route)))
+        rec_pct = round((100.0 * rec_count / samples), 2) if samples > 0 else 0.0
+        fail_pct = round((100.0 * fail_count / samples), 2) if samples > 0 else 0.0
+        rows.append(
+            {
+                "scope": label,
+                "metric": "Recomputed after retries",
+                "count": rec_count,
+                "pct": rec_pct,
+                "denominator": samples,
+            }
+        )
+        if agent_key == "person_walking":
+            rows.append(
+                {
+                    "scope": label,
+                    "metric": "Started without route (red)",
+                    "count": started_without_route,
+                    "pct": round((100.0 * started_without_route / samples), 2) if samples > 0 else 0.0,
+                    "denominator": samples,
+                }
+            )
+            rows.append(
+                {
+                    "scope": label,
+                    "metric": "Hard fail after retries",
+                    "count": hard_fail_count,
+                    "pct": round((100.0 * hard_fail_count / samples), 2) if samples > 0 else 0.0,
+                    "denominator": samples,
+                }
+            )
+        rows.append(
+            {
+                "scope": label,
+                "metric": "Red (no valid route to destination)",
+                "count": fail_count,
+                "pct": fail_pct,
+                "denominator": samples,
+            }
+        )
+    return rows
+
+
+def normdist(values):
+    clean = {}
+    for k, v in (values or {}).items():
+        fv = finite_float(v, None)
+        if fv is None or fv <= 0.0:
+            continue
+        clean[nk(k)] = fv
+    total = float(sum(clean.values()))
+    if total <= 0.0:
+        return {}
+    return {k: v / total for k, v in clean.items()}
+
+
+def extract_mode_choice_events(events):
+    if events is None or events.empty or "event_type" not in events.columns:
+        return pd.DataFrame(columns=["distance_class", "mode"])
+    base = events.copy()
+    base["event_type"] = base["event_type"].astype(str).str.strip().str.upper()
+    base = base[base["event_type"] == "MODE_CHOICE"]
+    if base.empty:
+        return pd.DataFrame(columns=["distance_class", "mode"])
+
+    rows = []
+    for _, row in base.iterrows():
+        d = parse_details_map(row.get("details", ""))
+        klass = nk(d.get("distance_class", ""))
+        mode = nk(d.get("chosen", ""))
+        if klass not in {"short", "long"} or mode == "":
+            continue
+        rows.append({"distance_class": klass, "mode": mode})
+    return pd.DataFrame(rows, columns=["distance_class", "mode"])
+
+
+def load_transport_targets_from_db(municipality_code=TRANSPORT_TARGET_MUNICIPALITY_CODE):
+    out = {"short": {}, "long": {}}
+    if not DB_PATH.exists():
+        return out
+    code = str(municipality_code or "").strip().split()[0]
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        rows = conn.execute(
+            """
+            SELECT distance_class, transport_mode, target_share
+            FROM transport_mode_targets
+            WHERE municipality_code = ?
+            """,
+            (code,),
+        ).fetchall()
+        if not rows:
+            rows = conn.execute(
+                """
+                SELECT distance_class, transport_mode, target_share
+                FROM transport_mode_targets
+                WHERE municipality_code = ''
+                """,
+            ).fetchall()
+        conn.close()
+    except sqlite3.Error:
+        return out
+
+    for distance_class, mode, share in rows:
+        klass = nk(distance_class)
+        m = nk(mode)
+        if klass in {"short", "long"} and m:
+            out.setdefault(klass, {})
+            out[klass][m] = finite_float(share, 0.0)
+    out["short"] = normdist(out.get("short", {}))
+    out["long"] = normdist(out.get("long", {}))
+    return out
+
+
+def compute_observed_mode_shares(trips, mode_choices, distance_filter="all"):
+    df = mode_choices if mode_choices is not None else pd.DataFrame()
+    if distance_filter in {"short", "long"} and not df.empty:
+        cut = df[df["distance_class"] == distance_filter]
+        if not cut.empty:
+            return {k: float(v) for k, v in cut["mode"].value_counts(normalize=True).to_dict().items()}
+    if distance_filter == "all" and not df.empty:
+        return {k: float(v) for k, v in df["mode"].value_counts(normalize=True).to_dict().items()}
+    if distance_filter == "all" and trips is not None and not trips.empty and "mode" in trips.columns:
+        return {nk(k): float(v) for k, v in trips["mode"].value_counts(normalize=True).to_dict().items()}
+    return {}
+
+
+def build_mode_expectation(mode_shares, mode_choices, transport_targets, distance_filter="all", fallback_long_share=None):
+    short_target = transport_targets.get("short", {}) or {}
+    long_target = transport_targets.get("long", {}) or {}
+
+    class_counts = {"short": 0, "long": 0}
+    if mode_choices is not None and not mode_choices.empty:
+        class_counts = {
+            "short": int((mode_choices["distance_class"] == "short").sum()),
+            "long": int((mode_choices["distance_class"] == "long").sum()),
+        }
+    samples = int(class_counts["short"] + class_counts["long"])
+
+    if distance_filter == "short":
+        long_share = 0.0
+    elif distance_filter == "long":
+        long_share = 1.0
+    else:
+        if samples > 0:
+            long_share = float(class_counts["long"] / samples)
+        elif fallback_long_share is not None:
+            long_share = finite_float(fallback_long_share, 0.5)
+        else:
+            long_share = 0.5
+
+    all_modes = sorted(set(TRANSPORT_MODE_ORDER) | set(mode_shares.keys()) | set(short_target.keys()) | set(long_target.keys()))
+    per_mode = {}
+    mixed_target = {}
+    for mode in all_modes:
+        exp_short = finite_float(short_target.get(nk(mode), 0.0), 0.0)
+        exp_long = finite_float(long_target.get(nk(mode), 0.0), 0.0)
+        if distance_filter == "short":
+            exp_mix = exp_short
+        elif distance_filter == "long":
+            exp_mix = exp_long
+        else:
+            exp_mix = (1.0 - long_share) * exp_short + long_share * exp_long
+        obs = finite_float(mode_shares.get(mode, 0.0), 0.0)
+        delta = obs - exp_mix
+        mixed_target[mode] = exp_mix
+        per_mode[mode] = {
+            "observed_share": obs,
+            "expected_short_share": exp_short,
+            "expected_long_share": exp_long,
+            "expected_mixed_share": exp_mix,
+            "delta_vs_mixed": delta,
+        }
+
+    return {
+        "samples": samples,
+        "class_counts": class_counts,
+        "observed_long_share": long_share,
+        "distance_filter": distance_filter,
+        "targets": {
+            "short": short_target,
+            "long": long_target,
+            "mixed_by_observed_class_share": mixed_target,
+        },
+        "per_mode": per_mode,
+    }
+
+
 def mode_share_figure(mode_shares, mode_expectation=None):
     if not mode_shares:
         fig = go.Figure()
@@ -611,23 +1295,39 @@ def mode_share_figure(mode_shares, mode_expectation=None):
     labels = [k for k, _ in items]
     values = [v * 100.0 for _, v in items]
     per_mode = (mode_expectation or {}).get("per_mode", {})
-    has_expected = any(
-        (per_mode.get(mode, {}).get("expected_mixed_share") is not None) for mode in labels
-    )
+    targets = (mode_expectation or {}).get("targets", {})
+    short_targets = targets.get("short", {}) if isinstance(targets, dict) else {}
+    long_targets = targets.get("long", {}) if isinstance(targets, dict) else {}
+    long_share = finite_float((mode_expectation or {}).get("observed_long_share"), 0.5)
+    has_expected = bool(per_mode or short_targets or long_targets)
     custom = []
+    hover_text = []
     for mode in labels:
         row = per_mode.get(mode, {})
-        exp_mix = row.get("expected_mixed_share")
-        exp_short = row.get("expected_short_share")
-        exp_long = row.get("expected_long_share")
-        delta_mix = row.get("delta_vs_mixed")
+        target_short = finite_float(short_targets.get(nk(mode), 0.0), 0.0)
+        target_long = finite_float(long_targets.get(nk(mode), 0.0), 0.0)
+        exp_short = finite_float(row.get("expected_short_share"), target_short)
+        exp_long = finite_float(row.get("expected_long_share"), target_long)
+        default_mix = (1.0 - long_share) * exp_short + long_share * exp_long
+        exp_mix = finite_float(row.get("expected_mixed_share"), default_mix)
+        obs_share = finite_float(mode_shares.get(mode, 0.0), 0.0)
+        delta_mix = finite_float(row.get("delta_vs_mixed"), obs_share - exp_mix)
         custom.append(
             [
-                (float(exp_mix) * 100.0) if exp_mix is not None else float("nan"),
-                (float(exp_short) * 100.0) if exp_short is not None else float("nan"),
-                (float(exp_long) * 100.0) if exp_long is not None else float("nan"),
-                (float(delta_mix) * 100.0) if delta_mix is not None else float("nan"),
+                exp_mix * 100.0,
+                exp_short * 100.0,
+                exp_long * 100.0,
+                delta_mix * 100.0,
             ]
+        )
+        observed = finite_float(mode_shares.get(mode, 0.0), 0.0) * 100.0
+        hover_text.append(
+            f"{mode}"
+            f"<br>Observed: {observed:.2f}%"
+            f"<br>Expected mixed: {exp_mix*100.0:.2f}%"
+            f"<br>Expected short: {exp_short*100.0:.2f}%"
+            f"<br>Expected long: {exp_long*100.0:.2f}%"
+            f"<br>Delta vs mixed: {delta_mix*100.0:.2f} pp"
         )
 
     fig = go.Figure(
@@ -638,19 +1338,8 @@ def mode_share_figure(mode_shares, mode_expectation=None):
                 hole=0.35,
                 textinfo="label+percent",
                 customdata=custom,
-                hovertemplate=(
-                    (
-                        "%{label}"
-                        "<br>Observed: %{value:.2f}%"
-                        "<br>Expected mixed: %{customdata[0]:.2f}%"
-                        "<br>Expected short: %{customdata[1]:.2f}%"
-                        "<br>Expected long: %{customdata[2]:.2f}%"
-                        "<br>Delta vs mixed: %{customdata[3]:.2f} pp"
-                        "<extra></extra>"
-                    )
-                    if has_expected
-                    else "%{label}: %{value:.2f}%<extra></extra>"
-                ),
+                hovertext=hover_text,
+                hovertemplate=("%{hovertext}<extra></extra>" if has_expected else "%{label}: %{value:.2f}%<extra></extra>"),
             )
         ]
     )
@@ -662,6 +1351,44 @@ def mode_share_figure(mode_shares, mode_expectation=None):
         hoverlabel={"font": {"size": 14}},
     )
     return fig
+
+
+def build_mode_expectation_rows(mode_shares, mode_expectation):
+    per_mode = (mode_expectation or {}).get("per_mode", {}) or {}
+    targets = (mode_expectation or {}).get("targets", {}) or {}
+    short_targets = (targets.get("short", {}) if isinstance(targets, dict) else {}) or {}
+    long_targets = (targets.get("long", {}) if isinstance(targets, dict) else {}) or {}
+    long_share = finite_float((mode_expectation or {}).get("observed_long_share"), 0.5)
+
+    modes = set(TRANSPORT_MODE_ORDER) | set(mode_shares.keys()) | set(per_mode.keys()) | set(short_targets.keys()) | set(long_targets.keys())
+    ordered_modes = sorted(
+        modes,
+        key=lambda m: ((TRANSPORT_MODE_ORDER.index(m) if m in TRANSPORT_MODE_ORDER else 999), str(m)),
+    )
+
+    rows = []
+    for mode in ordered_modes:
+        row = per_mode.get(mode, {}) if isinstance(per_mode, dict) else {}
+        obs = finite_float(mode_shares.get(mode, row.get("observed_share", 0.0)), 0.0)
+        target_short = finite_float(short_targets.get(nk(mode), 0.0), 0.0)
+        target_long = finite_float(long_targets.get(nk(mode), 0.0), 0.0)
+        exp_short = finite_float(row.get("expected_short_share"), target_short)
+        exp_long = finite_float(row.get("expected_long_share"), target_long)
+        exp_total_default = (1.0 - long_share) * exp_short + long_share * exp_long
+        exp_total = finite_float(row.get("expected_mixed_share"), exp_total_default)
+        delta = finite_float(row.get("delta_vs_mixed"), obs - exp_total)
+
+        rows.append(
+            {
+                "mode": str(mode),
+                "observed_pct": round(obs * 100.0, 2),
+                "expected_total_pct": round(exp_total * 100.0, 2),
+                "expected_short_pct": round(exp_short * 100.0, 2),
+                "expected_long_pct": round(exp_long * 100.0, 2),
+                "delta_pp": round(delta * 100.0, 2),
+            }
+        )
+    return rows
 
 
 def active_travelers_figure(profile):
@@ -824,11 +1551,14 @@ def build_discrepancy_rows(report):
     top = report.get("real_vs_sim", {}).get("top_discrepancies", [])
     rows = []
     for idx, d in enumerate(top, start=1):
+        dim = str(d.get("dimension", ""))
+        raw_category = str(d.get("category", ""))
+        display_category = household_category_display_label(raw_category) if dim.startswith("household") else raw_category
         rows.append(
             {
                 "rank": idx,
-                "dimension": str(d.get("dimension", "")),
-                "category": str(d.get("category", "")),
+                "dimension": dim,
+                "category": display_category,
                 "sim_pct": round(float(d.get("sim_share", 0.0)) * 100.0, 2),
                 "target_pct": round(float(d.get("target_share", 0.0)) * 100.0, 2),
                 "abs_delta_pct": round(float(d.get("abs_delta", 0.0)) * 100.0, 2),
@@ -846,6 +1576,8 @@ def build_population_monitor_rows(report, households):
     count_group_for_dim = {
         "household_size": "household_size",
         "gender": "gender",
+        "orientation": "orientation",
+        "couple_age_gap": "couple_age_gap",
         "age_range": "age_range",
         "district": "district",
     }
@@ -857,12 +1589,13 @@ def build_population_monitor_rows(report, households):
         if dim == "work_start_hour":
             counts = {str(k): int(v) for k, v in (work_sched.get("start_counts", {}) or {}).items()}
         for x in comp.get("rows", []):
-            cat = str(x.get("category", ""))
+            raw_category = str(x.get("category", ""))
+            display_category = household_category_display_label(raw_category) if dim.startswith("household") else raw_category
             rows.append(
                 {
                     "dimension": dim,
-                    "category": cat,
-                    "count": int(counts.get(cat, 0)),
+                    "category": display_category,
+                    "count": int(counts.get(raw_category, 0)),
                     "sim_pct": round(float(x.get("sim_share", 0.0)) * 100.0, 2),
                     "target_pct": round(float(x.get("target_share", 0.0)) * 100.0, 2),
                     "delta_pct": round(float(x.get("delta", 0.0)) * 100.0, 2),
@@ -902,7 +1635,7 @@ def fmt_num(value, default="-", digits=2):
         return default
 
 
-def compute_kpis(report, trips, events, profile):
+def compute_kpis(report, trips, events, profile, stuck_summary=None, vehicle_pool=None):
     summary = profile.get("summary", {}) if profile else {}
     taxi_kpis = report.get("taxi_kpis", {})
     schedule_flow = report.get("schedule_flow", {})
@@ -924,6 +1657,19 @@ def compute_kpis(report, trips, events, profile):
         "work_home_gap": int(schedule_flow.get("home_return_vs_work_gap", 0)),
         "trip_event_closure_pct": fmt_num(float(trip_lifecycle.get("event_closure_rate", 0.0)) * 100.0, digits=1),
     }
+    if stuck_summary is None:
+        stuck_summary = compute_stuck_removal_summary(events)
+    if vehicle_pool is None:
+        vehicle_pool = compute_runtime_vehicle_pool(events)
+    vehicle_den = int(vehicle_pool.get("total", 0))
+    if vehicle_den <= 0 and not trips.empty and "mode" in trips.columns:
+        md = trips["mode"].astype(str).str.strip().str.lower()
+        vehicle_den = int((md == "car").sum() + (md == "taxi").sum())
+    stuck_total = int(stuck_summary.get("total", 0))
+    stuck_pct = (100.0 * stuck_total / vehicle_den) if vehicle_den > 0 else 0.0
+    kpis["stuck_vehicle_removals"] = stuck_total
+    kpis["stuck_vehicle_removals_pct"] = fmt_num(stuck_pct, digits=2)
+    kpis["runtime_vehicle_pool"] = vehicle_den
     return kpis
 
 
@@ -974,6 +1720,8 @@ def build_dashboard_export_rows(
     events,
     mode_shares,
     mode_exp,
+    route_plan_rows,
+    route_cancel_rows,
     profile,
     kpis,
     peaks_rows,
@@ -1031,19 +1779,73 @@ def build_dashboard_export_rows(
             ("delta_vs_mixed", "delta_vs_mixed_pct_points"),
         ]:
             v = per_mode.get(key)
-            if v is not None:
+            fv = finite_float(v, None)
+            if fv is not None:
                 rows.append(
                     {
                         "export_time": export_time,
                         "section": "mode_share",
                         "item": col,
                         "category": str(mode),
-                        "value": round(float(v) * 100.0, 4),
+                        "value": round(fv * 100.0, 4),
                         "value_text": "",
                         "unit": "pct",
                         "notes": "",
                     }
                 )
+
+    for r in route_plan_rows:
+        agent = str(r.get("agent", ""))
+        samples = int(r.get("samples", 0))
+        rows.append(
+            {
+                "export_time": export_time,
+                "section": "route_planning",
+                "item": "samples",
+                "category": agent,
+                "value": samples,
+                "value_text": "",
+                "unit": "count",
+                "notes": "",
+            }
+        )
+        for key in [
+            "first_try_count",
+            "recovered_count",
+            "started_without_route_count",
+            "failed_no_route_count",
+            "failed_count",
+            "first_try_pct",
+            "recovered_pct",
+            "failed_pct",
+            "avg_attempts",
+        ]:
+            rows.append(
+                {
+                    "export_time": export_time,
+                    "section": "route_planning",
+                    "item": key,
+                    "category": agent,
+                    "value": finite_float(r.get(key, 0.0), 0.0),
+                    "value_text": "",
+                    "unit": "pct" if key.endswith("_pct") else "count",
+                    "notes": "",
+                }
+            )
+
+    for r in route_cancel_rows:
+        rows.append(
+            {
+                "export_time": export_time,
+                "section": "route_cancel_impact",
+                "item": str(r.get("metric", "")),
+                "category": str(r.get("scope", "")),
+                "value": finite_float(r.get("count", 0.0), 0.0),
+                "value_text": "",
+                "unit": "count",
+                "notes": f'pct={finite_float(r.get("pct", 0.0), 0.0)};denominator={int(finite_float(r.get("denominator", 0.0), 0.0))}',
+            }
+        )
 
     summary = profile.get("summary", {}) if profile else {}
     for k in ["peak_active", "peak_time_seconds", "avg_active", "active_p95", "active_non_zero_min"]:
@@ -1192,6 +1994,8 @@ def export_dashboard_csv(
     events,
     mode_shares,
     mode_exp,
+    route_plan_rows,
+    route_cancel_rows,
     profile,
     kpis,
     peaks_rows,
@@ -1204,6 +2008,8 @@ def export_dashboard_csv(
         events=events,
         mode_shares=mode_shares,
         mode_exp=mode_exp,
+        route_plan_rows=route_plan_rows,
+        route_cancel_rows=route_cancel_rows,
         profile=profile,
         kpis=kpis,
         peaks_rows=peaks_rows,
@@ -1259,10 +2065,126 @@ app.layout = html.Div(
         ),
         html.Div(id="kpi-row", style={"display": "grid", "gridTemplateColumns": "repeat(auto-fit, minmax(180px, 1fr))", "gap": "10px", "marginBottom": "14px"}),
         html.Div(
+            style={"display": "flex", "gap": "10px", "alignItems": "center", "marginBottom": "12px"},
+            children=[
+                html.Div("Trip class for transport stats:", style={"color": "#d6dfed", "fontSize": "13px"}),
+                dcc.Dropdown(
+                    id="trip-class-filter",
+                    options=TRIP_CLASS_FILTER_OPTIONS,
+                    value="all",
+                    clearable=False,
+                    style={"minWidth": "260px", "maxWidth": "320px", "fontSize": "13px"},
+                ),
+            ],
+        ),
+        html.Div(
             style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "12px", "marginBottom": "12px"},
             children=[
                 dcc.Graph(id="mode-pie", config={"displaylogo": False}),
                 dcc.Graph(id="active-timeline", config={"displaylogo": False}),
+            ],
+        ),
+        html.Div(
+            style={"marginTop": "4px", "background": "#16202f", "border": "1px solid #223147", "borderRadius": "10px", "padding": "8px"},
+            children=[
+                html.H4("Transport Mode: Observed vs Expected (Total / Short / Long)", style={"margin": "8px 10px", "color": "#f3f6fb"}),
+                dash_table.DataTable(
+                    id="mode-expected-table",
+                    columns=[
+                        {"name": "Mode", "id": "mode"},
+                        {"name": "Observed (%)", "id": "observed_pct"},
+                        {"name": "Expected Total (%)", "id": "expected_total_pct"},
+                        {"name": "Expected Short (%)", "id": "expected_short_pct"},
+                        {"name": "Expected Long (%)", "id": "expected_long_pct"},
+                        {"name": "Delta (pp)", "id": "delta_pp"},
+                    ],
+                    data=[],
+                    page_size=10,
+                    sort_action="native",
+                    style_as_list_view=True,
+                    style_cell={"padding": "6px", "fontSize": "13px", "textAlign": "left", "backgroundColor": "#16202f", "color": "#f3f6fb", "border": "1px solid #223147"},
+                    style_header={"fontWeight": "bold", "backgroundColor": "#1f2c40", "color": "#f3f6fb", "border": "1px solid #2b3a50"},
+                ),
+            ],
+        ),
+        html.Div(
+            style={"marginTop": "12px", "background": "#16202f", "border": "1px solid #223147", "borderRadius": "10px", "padding": "8px"},
+            children=[
+                html.H4("Route Planning Diagnostics (Differentiated Section)", style={"margin": "8px 10px", "color": "#f3f6fb"}),
+                html.Div(
+                    style={"display": "grid", "gridTemplateColumns": "1fr", "gap": "10px"},
+                    children=[
+                        dcc.Graph(id="route-plan-chart", config={"displaylogo": False}, style={"height": "380px"}),
+                        dash_table.DataTable(
+                            id="route-plan-table",
+                            columns=[
+                                {"name": "Agent", "id": "agent"},
+                                {"name": "Samples", "id": "samples"},
+                                {"name": "First Count", "id": "first_try_count"},
+                                {"name": "Recovered Count", "id": "recovered_count"},
+                                {"name": "Started w/o Route", "id": "started_without_route_count"},
+                                {"name": "Failed Count", "id": "failed_count"},
+                                {"name": "First Try (%)", "id": "first_try_pct"},
+                                {"name": "Recovered (%)", "id": "recovered_pct"},
+                                {"name": "Failed (%)", "id": "failed_pct"},
+                                {"name": "Avg Attempts", "id": "avg_attempts"},
+                            ],
+                            data=[],
+                            page_size=10,
+                            sort_action="native",
+                            style_as_list_view=True,
+                            style_cell={"padding": "6px", "fontSize": "13px", "textAlign": "left", "backgroundColor": "#16202f", "color": "#f3f6fb", "border": "1px solid #223147"},
+                            style_header={"fontWeight": "bold", "backgroundColor": "#1f2c40", "color": "#f3f6fb", "border": "1px solid #2b3a50"},
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        html.Div(
+            style={"marginTop": "12px", "background": "#16202f", "border": "1px solid #223147", "borderRadius": "10px", "padding": "8px"},
+            children=[
+                html.H4("Cancelled / Recomputed Trips (Impact)", style={"margin": "8px 10px", "color": "#f3f6fb"}),
+                dash_table.DataTable(
+                    id="route-cancel-table",
+                    columns=[
+                        {"name": "Scope", "id": "scope"},
+                        {"name": "Metric", "id": "metric"},
+                        {"name": "Count", "id": "count"},
+                        {"name": "%", "id": "pct"},
+                        {"name": "Denominator", "id": "denominator"},
+                    ],
+                    data=[],
+                    page_size=10,
+                    sort_action="native",
+                    style_as_list_view=True,
+                    style_cell={"padding": "6px", "fontSize": "13px", "textAlign": "left", "backgroundColor": "#16202f", "color": "#f3f6fb", "border": "1px solid #223147"},
+                    style_header={"fontWeight": "bold", "backgroundColor": "#1f2c40", "color": "#f3f6fb", "border": "1px solid #2b3a50"},
+                ),
+            ],
+        ),
+        html.Div(
+            style={"marginTop": "12px", "background": "#16202f", "border": "1px solid #223147", "borderRadius": "10px", "padding": "8px"},
+            children=[
+                html.H4("Stuck Vehicle Removals (Event Log)", style={"margin": "8px 10px", "color": "#f3f6fb"}),
+                dash_table.DataTable(
+                    id="stuck-removal-table",
+                    columns=[
+                        {"name": "Time (s)", "id": "time_s"},
+                        {"name": "Time (h)", "id": "time_h"},
+                        {"name": "Vehicle", "id": "vehicle_id"},
+                        {"name": "Agent", "id": "agent"},
+                        {"name": "Phase", "id": "phase"},
+                        {"name": "Stuck (min)", "id": "stuck_min"},
+                        {"name": "Threshold (min)", "id": "threshold_min"},
+                        {"name": "Stuck Start (s)", "id": "stuck_start_s"},
+                    ],
+                    data=[],
+                    page_size=10,
+                    sort_action="native",
+                    style_as_list_view=True,
+                    style_cell={"padding": "6px", "fontSize": "13px", "textAlign": "left", "backgroundColor": "#16202f", "color": "#f3f6fb", "border": "1px solid #223147"},
+                    style_header={"fontWeight": "bold", "backgroundColor": "#1f2c40", "color": "#f3f6fb", "border": "1px solid #2b3a50"},
+                ),
             ],
         ),
         html.Div(
@@ -1395,6 +2317,11 @@ app.layout = html.Div(
     Output("last-refresh", "children"),
     Output("kpi-row", "children"),
     Output("mode-pie", "figure"),
+    Output("mode-expected-table", "data"),
+    Output("route-plan-chart", "figure"),
+    Output("route-plan-table", "data"),
+    Output("route-cancel-table", "data"),
+    Output("stuck-removal-table", "data"),
     Output("active-timeline", "figure"),
     Output("starts-per-hour", "figure"),
     Output("work-schedule-hist", "figure"),
@@ -1404,18 +2331,56 @@ app.layout = html.Div(
     Output("household-size-breakdown-table", "data"),
     Output("household-structure-focus-table", "data"),
     Input("refresh", "n_intervals"),
+    Input("trip-class-filter", "value"),
 )
-def refresh_dashboard(_):
+def refresh_dashboard(_, trip_class_filter):
     report = load_report()
     trips = load_trips()
     events = load_events()
     households = load_households_registry()
 
-    mode_shares = safe_mode_shares(report, trips)
-    mode_exp = report.get("mode_expectation", {})
+    trip_class_filter = nk(trip_class_filter) if trip_class_filter is not None else "all"
+    if trip_class_filter not in {"all", "short", "long"}:
+        trip_class_filter = "all"
+    mode_choices = extract_mode_choice_events(events)
+    transport_targets = load_transport_targets_from_db(TRANSPORT_TARGET_MUNICIPALITY_CODE)
+    if not transport_targets.get("short") and not transport_targets.get("long"):
+        fallback_targets = (report.get("mode_expectation", {}) or {}).get("targets", {})
+        transport_targets = {
+            "short": (fallback_targets.get("short", {}) if isinstance(fallback_targets, dict) else {}) or {},
+            "long": (fallback_targets.get("long", {}) if isinstance(fallback_targets, dict) else {}) or {},
+        }
+    fallback_long_share = (report.get("mode_expectation", {}) or {}).get("observed_long_share")
+    mode_shares = compute_observed_mode_shares(trips, mode_choices, trip_class_filter)
+    mode_exp = build_mode_expectation(
+        mode_shares=mode_shares,
+        mode_choices=mode_choices,
+        transport_targets=transport_targets,
+        distance_filter=trip_class_filter,
+        fallback_long_share=fallback_long_share,
+    )
+    route_plan_rows, route_plan_summary = compute_route_planning_rows(events)
+    stuck_summary = compute_stuck_removal_summary(events)
+    vehicle_pool = compute_runtime_vehicle_pool(events)
+    stuck_removal_rows = compute_stuck_removal_rows(events)
+    route_cancel_rows = build_route_cancel_rows(
+        trips,
+        route_plan_summary,
+        events,
+        stuck_summary=stuck_summary,
+        vehicle_pool=vehicle_pool,
+        stuck_rows=stuck_removal_rows,
+    )
     profile = compute_active_travelers_profile(trips) if not trips.empty else {}
     summary = profile.get("summary", {})
-    kpis = compute_kpis(report, trips, events, profile)
+    kpis = compute_kpis(
+        report,
+        trips,
+        events,
+        profile,
+        stuck_summary=stuck_summary,
+        vehicle_pool=vehicle_pool,
+    )
     discrepancies = build_discrepancy_rows(report)
     population_monitor_rows = build_population_monitor_rows(report, households)
     population_monitor_general_rows, household_size_rows, household_structure_focus_rows = split_population_monitor_rows(population_monitor_rows)
@@ -1428,6 +2393,8 @@ def refresh_dashboard(_):
         events,
         mode_shares,
         mode_exp,
+        route_plan_rows,
+        route_cancel_rows,
         profile,
         kpis,
         peaks_rows,
@@ -1446,9 +2413,26 @@ def refresh_dashboard(_):
         card("Home Return / Work", f'{kpis["home_return_work_ratio_pct"]}%', f'gap: {kpis["work_home_gap"]}'),
         card("Trip Event Closure", f'{kpis["trip_event_closure_pct"]}%', "starts vs ends"),
         card("Events Rows", kpis["events_rows"], "rows in events.csv"),
+        card(
+            "Stuck Removals",
+            kpis["stuck_vehicle_removals"],
+            f'{kpis["stuck_vehicle_removals_pct"]}% of runtime vehicles',
+        ),
+        card(
+            "Route Fail (After Retries)",
+            "walk " + fmt_num(route_plan_summary.get("person_walking", {}).get("failed_pct", 0.0), digits=1)
+            + "% | car " + fmt_num(route_plan_summary.get("car", {}).get("failed_pct", 0.0), digits=1) + "%",
+            "from ROUTE_PLAN events",
+        ),
+        card(
+            "Mode Samples",
+            mode_exp.get("samples", 0),
+            f'short={mode_exp.get("class_counts", {}).get("short", 0)}, long={mode_exp.get("class_counts", {}).get("long", 0)}',
+        ),
     ]
 
     refreshed_at = f"Last refresh: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    refreshed_at += f" | trip_class={trip_class_filter}"
     if export_latest is not None:
         refreshed_at += f" | CSV: {export_latest.name} ({export_rows} rows)"
     if export_snapshot is not None:
@@ -1458,6 +2442,11 @@ def refresh_dashboard(_):
         refreshed_at,
         kpi_cards,
         mode_share_figure(mode_shares, mode_exp),
+        build_mode_expectation_rows(mode_shares, mode_exp),
+        route_planning_figure(route_plan_rows),
+        route_plan_rows,
+        route_cancel_rows,
+        stuck_removal_rows,
         active_travelers_figure(profile),
         starts_per_hour_figure(trips),
         work_schedule_hist_figure(report),
