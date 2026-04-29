@@ -1,0 +1,40 @@
+site_name: CitySimulator
+site_description: Documentacion tecnica del simulador de movilidad urbana CitySimulator
+site_url: https://jasantos-pa.github.io/CitySimulationGAMA/
+repo_url: https://github.com/jasantos-pa/CitySimulationGAMA
+repo_name: jasantos-pa/CitySimulationGAMA
+
+nav:
+  - Inicio: index.md
+  - Objetivo: objetivo.md
+  - Mapeo del entorno: mapeo.md
+  - Estadisticas: estadisticas.md
+  - Poblacion: poblacion.md
+  - Movimientos: movimientos.md
+  - Visualizacion: visualizacion.md
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - tables
+
+theme:
+  name: material
+  language: es
+  icon:
+    logo: material/map-marker-path
+  palette:
+    - scheme: default
+      primary: blue
+      accent: light blue
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.footer
+    - toc.integrate
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+
+extra_css:
+  - stylesheets/extra.css

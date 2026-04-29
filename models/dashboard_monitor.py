@@ -10,7 +10,7 @@ import pandas as pd
 
 try:
     import plotly.graph_objects as go
-    from dash import Dash, Input, Output, dash_table, dcc, html
+    from dash import Dash, Input, Output, State, dash_table, dcc, html
 except ImportError as exc:
     raise SystemExit(
         "Missing dependencies: install with `python -m pip install -r models/requirements-dashboard.txt` "
@@ -29,6 +29,30 @@ DB_PATH = BASE_DIR.parent / "includes" / "SimuCityDB.db"
 HOUSEHOLD_TARGET_MUNICIPALITY_CODE = os.getenv("CITY_MUNICIPALITY_CODE", "28074")
 TRANSPORT_TARGET_MUNICIPALITY_CODE = os.getenv("CITY_MUNICIPALITY_CODE", "28074")
 TRANSPORT_MODE_ORDER = ["car", "train", "walking", "taxi"]
+PURPOSE_GROUP_ORDER = ["Work", "Home / Rest", "Accompany", "Activity", "Other / Unknown"]
+PURPOSE_GROUP_COLORS = {
+    "Work": "#4caf50",
+    "Home / Rest": "#1f77b4",
+    "Accompany": "#9c27b0",
+    "Activity": "#ff9800",
+    "Other / Unknown": "#7f8c8d",
+}
+PURPOSE_DISPLAY = {
+    "working": "Go to Work",
+    "resting": "Return Home / Rest",
+    "accompany": "Accompany Someone",
+    "go_for_a_walk": "Go for a Walk",
+    "go_park": "Go to Park",
+    "go_doctor": "Go to Doctor",
+    "go_to_friend_home": "Visit Friend at Home",
+    "go_sport": "Go to Sport",
+    "go_shopping": "Go Shopping",
+    "go_cafe": "Go to Cafe",
+    "go_bar": "Go to Bar",
+    "go_supermarket": "Go to Supermarket",
+    "go_church": "Go to Church",
+    "go_run_errands": "Run Errands",
+}
 TRIP_CLASS_FILTER_OPTIONS = [
     {"label": "All Trips (Mixed)", "value": "all"},
     {"label": "Short Trips", "value": "short"},
@@ -69,62 +93,121 @@ DASHBOARD_EXPORT_LATEST = BASE_DIR / "dashboard_export_latest.csv"
 DASHBOARD_EXPORTS_DIR = BASE_DIR / "dashboard_exports"
 
 REFRESH_INTERVAL_MS = 15_000
+RUNTIME_CACHE = {"file": {}, "derived": {}}
+
+
+def file_signature(path: Path):
+    try:
+        stat = path.stat()
+        return True, int(stat.st_size), int(stat.st_mtime_ns)
+    except OSError:
+        return False, 0, 0
+
+
+def object_cache_token(obj):
+    if isinstance(obj, pd.DataFrame):
+        return obj.attrs.get("_dashboard_signature", id(obj))
+    return id(obj)
+
+
+def tag_dataframe_signature(df, signature):
+    if isinstance(df, pd.DataFrame):
+        df.attrs["_dashboard_signature"] = signature
+    return df
+
+
+def get_runtime_cached(group, key, signature, builder):
+    cache = RUNTIME_CACHE.setdefault(group, {})
+    entry = cache.get(key)
+    if entry is not None and entry.get("signature") == signature:
+        return entry.get("value")
+    value = builder()
+    cache[key] = {"signature": signature, "value": value}
+    return value
 
 
 def load_report():
-    if not REPORT_JSON.exists():
-        return {}
-    try:
-        return json.loads(REPORT_JSON.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return {}
+    signature = file_signature(REPORT_JSON)
+
+    def _read():
+        if not signature[0]:
+            return {}
+        try:
+            return json.loads(REPORT_JSON.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+
+    return get_runtime_cached("file", "report", signature, _read)
 
 
 def load_trips():
-    if not TRIPS_CSV.exists():
-        return pd.DataFrame()
-    trips = pd.read_csv(TRIPS_CSV, skipinitialspace=True)
-    for col in ["start_time", "end_time", "duration", "wait_time"]:
-        if col in trips.columns:
-            trips[col] = pd.to_numeric(trips[col], errors="coerce")
-    if "mode" in trips.columns:
-        trips["mode"] = trips["mode"].astype(str).str.strip().str.lower()
-    return trips
+    signature = file_signature(TRIPS_CSV)
+
+    def _read():
+        if not signature[0]:
+            return tag_dataframe_signature(pd.DataFrame(), signature)
+        trips = pd.read_csv(TRIPS_CSV, skipinitialspace=True)
+        for col in ["start_time", "end_time", "duration", "wait_time"]:
+            if col in trips.columns:
+                trips[col] = pd.to_numeric(trips[col], errors="coerce")
+        if "mode" in trips.columns:
+            trips["mode"] = trips["mode"].astype(str).str.strip().str.lower()
+        if "purpose" in trips.columns:
+            trips["purpose"] = trips["purpose"].astype(str).str.strip().str.lower()
+        if "person_id" in trips.columns:
+            trips["person_id"] = trips["person_id"].astype(str).str.strip()
+        return tag_dataframe_signature(trips, signature)
+
+    return get_runtime_cached("file", "trips", signature, _read)
 
 
 def load_events():
-    if not EVENTS_CSV.exists():
-        return pd.DataFrame()
-    try:
-        events = pd.read_csv(EVENTS_CSV, skipinitialspace=True)
-    except pd.errors.ParserError:
-        # Some event details include commas without CSV quoting; rebuild rows safely.
-        raw_lines = EVENTS_CSV.read_text(encoding="utf-8", errors="replace").splitlines()
-        rows = []
-        for line in raw_lines[1:]:
-            if not line.strip():
-                continue
-            parts = line.split(",")
-            if len(parts) < 7:
-                continue
-            rows.append(
-                {
-                    "event_type": parts[0].strip(),
-                    "time": parts[1].strip(),
-                    "entity_id": parts[2].strip(),
-                    "related_id": parts[3].strip(),
-                    "details": ",".join(parts[4:-2]).strip(),
-                    "extra_1": parts[-2].strip(),
-                    "extra_2": parts[-1].strip(),
-                }
+    signature = file_signature(EVENTS_CSV)
+
+    def _read():
+        if not signature[0]:
+            return tag_dataframe_signature(pd.DataFrame(), signature)
+        try:
+            events = pd.read_csv(
+                EVENTS_CSV,
+                skipinitialspace=True,
+                usecols=lambda c: c in {"event_type", "time", "entity_id", "related_id", "details"},
             )
-        events = pd.DataFrame(
-            rows,
-            columns=["event_type", "time", "entity_id", "related_id", "details", "extra_1", "extra_2"],
-        )
-    if "time" in events.columns:
-        events["time"] = pd.to_numeric(events["time"], errors="coerce")
-    return events
+        except pd.errors.ParserError:
+            # Some event details include commas without CSV quoting; rebuild rows safely.
+            raw_lines = EVENTS_CSV.read_text(encoding="utf-8", errors="replace").splitlines()
+            rows = []
+            for line in raw_lines[1:]:
+                if not line.strip():
+                    continue
+                parts = line.split(",")
+                if len(parts) < 7:
+                    continue
+                rows.append(
+                    {
+                        "event_type": parts[0].strip(),
+                        "time": parts[1].strip(),
+                        "entity_id": parts[2].strip(),
+                        "related_id": parts[3].strip(),
+                        "details": ",".join(parts[4:-2]).strip(),
+                    }
+                )
+            events = pd.DataFrame(
+                rows,
+                columns=["event_type", "time", "entity_id", "related_id", "details"],
+            )
+        if "time" in events.columns:
+            events["time"] = pd.to_numeric(events["time"], errors="coerce")
+        for col in ["event_type", "entity_id", "related_id", "details"]:
+            if col not in events.columns:
+                events[col] = ""
+        events["event_type"] = events["event_type"].fillna("").astype(str).str.strip().str.upper()
+        events["entity_id"] = events["entity_id"].fillna("").astype(str).str.strip()
+        events["related_id"] = events["related_id"].fillna("").astype(str).str.strip()
+        events["details"] = events["details"].fillna("").astype(str)
+        return tag_dataframe_signature(events, signature)
+
+    return get_runtime_cached("file", "events", signature, _read)
 
 
 def nk(value):
@@ -192,129 +275,140 @@ def household_category_display_label(raw):
 
 
 def load_households_registry():
-    if not HOUSEHOLDS_CSV.exists():
-        return pd.DataFrame()
-    try:
-        return pd.read_csv(HOUSEHOLDS_CSV, skipinitialspace=True)
-    except pd.errors.ParserError:
-        raw_lines = HOUSEHOLDS_CSV.read_text(encoding="utf-8", errors="replace").splitlines()
-        header_parts = raw_lines[0].split(",") if raw_lines else []
-        has_nucleus_col = any(nk(h) == "nucleus_member_refs" for h in header_parts)
-        rows = []
-        for line in raw_lines[1:]:
-            if not line.strip():
-                continue
-            parts = line.split(",")
-            if has_nucleus_col and len(parts) < 9:
-                continue
-            if (not has_nucleus_col) and len(parts) < 8:
-                continue
-            if has_nucleus_col:
-                nucleus_refs = parts[6].strip()
-                house_name = ",".join(parts[7:-1]).strip()
-                house_type = parts[-1].strip()
-            else:
-                nucleus_refs = ""
-                house_name = ",".join(parts[6:-1]).strip()
-                house_type = parts[-1].strip()
-            rows.append(
-                {
-                    "household_id": parts[0].strip(),
-                    "number_persons": parts[1].strip(),
-                    "district": parts[2].strip(),
-                    "household_type_theoretical": parts[3].strip(),
-                    "household_type_generated": parts[4].strip(),
-                    "member_count": parts[5].strip(),
-                    "nucleus_member_refs": nucleus_refs,
-                    "house_building_name": house_name,
-                    "house_building_type": house_type,
-                }
+    signature = file_signature(HOUSEHOLDS_CSV)
+
+    def _read():
+        if not signature[0]:
+            return tag_dataframe_signature(pd.DataFrame(), signature)
+        try:
+            households = pd.read_csv(HOUSEHOLDS_CSV, skipinitialspace=True)
+        except pd.errors.ParserError:
+            raw_lines = HOUSEHOLDS_CSV.read_text(encoding="utf-8", errors="replace").splitlines()
+            header_parts = raw_lines[0].split(",") if raw_lines else []
+            has_nucleus_col = any(nk(h) == "nucleus_member_refs" for h in header_parts)
+            rows = []
+            for line in raw_lines[1:]:
+                if not line.strip():
+                    continue
+                parts = line.split(",")
+                if has_nucleus_col and len(parts) < 9:
+                    continue
+                if (not has_nucleus_col) and len(parts) < 8:
+                    continue
+                if has_nucleus_col:
+                    nucleus_refs = parts[6].strip()
+                    house_name = ",".join(parts[7:-1]).strip()
+                    house_type = parts[-1].strip()
+                else:
+                    nucleus_refs = ""
+                    house_name = ",".join(parts[6:-1]).strip()
+                    house_type = parts[-1].strip()
+                rows.append(
+                    {
+                        "household_id": parts[0].strip(),
+                        "number_persons": parts[1].strip(),
+                        "district": parts[2].strip(),
+                        "household_type_theoretical": parts[3].strip(),
+                        "household_type_generated": parts[4].strip(),
+                        "member_count": parts[5].strip(),
+                        "nucleus_member_refs": nucleus_refs,
+                        "house_building_name": house_name,
+                        "house_building_type": house_type,
+                    }
+                )
+            households = pd.DataFrame(
+                rows,
+                columns=[
+                    "household_id",
+                    "number_persons",
+                    "district",
+                    "household_type_theoretical",
+                    "household_type_generated",
+                    "member_count",
+                    "nucleus_member_refs",
+                    "house_building_name",
+                    "house_building_type",
+                ],
             )
-        return pd.DataFrame(
-            rows,
-            columns=[
-                "household_id",
-                "number_persons",
-                "district",
-                "household_type_theoretical",
-                "household_type_generated",
-                "member_count",
-                "nucleus_member_refs",
-                "house_building_name",
-                "house_building_type",
-            ],
-        )
+        return tag_dataframe_signature(households, signature)
+
+    return get_runtime_cached("file", "households", signature, _read)
 
 
 def load_household_targets_from_db(municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
-    out = {
-        "overall_pct": {},
-        "by_size_pct": {},
-        "display_labels": {},
-        "size_order": list(HOUSEHOLD_SIZE_ORDER),
-    }
-    if not DB_PATH.exists():
-        return out
-
     code = str(municipality_code or "").strip().split()[0]
-    like_value = f"{code} %" if code else f"{municipality_code} %"
+    signature = (file_signature(DB_PATH), code)
 
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        rows = conn.execute(
-            "SELECT TamanoHogar, EstructuraHogar, Total FROM Hogares WHERE Municipio LIKE ?",
-            (like_value,),
-        ).fetchall()
-        conn.close()
-    except sqlite3.Error:
+    def _load():
+        out = {
+            "overall_pct": {},
+            "by_size_pct": {},
+            "display_labels": {},
+            "size_order": list(HOUSEHOLD_SIZE_ORDER),
+        }
+        if not DB_PATH.exists():
+            return out
+
+        like_value = f"{code} %" if code else f"{municipality_code} %"
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            rows = conn.execute(
+                "SELECT TamanoHogar, EstructuraHogar, Total FROM Hogares WHERE Municipio LIKE ?",
+                (like_value,),
+            ).fetchall()
+            conn.close()
+        except sqlite3.Error:
+            return out
+
+        overall_counts = {}
+        overall_total = 0.0
+        by_size_counts = {s: {} for s in out["size_order"]}
+        by_size_totals = {s: 0.0 for s in out["size_order"]}
+
+        for size_bucket_db, structure_db, total in rows:
+            size_raw = "" if size_bucket_db is None else str(size_bucket_db).strip()
+            struct_raw = "" if structure_db is None else str(structure_db).strip()
+            struct_key = nk(struct_raw)
+            if not struct_key:
+                continue
+            out["display_labels"].setdefault(struct_key, struct_raw)
+            total_value = float(total or 0.0)
+            size_norm = nk(size_raw)
+            size_label = canonical_household_size_label(size_raw)
+
+            is_total_structure = "total (estructura del hogar)" in struct_key
+            is_total_size_bucket = "total (tamano del hogar)" in size_norm
+
+            if is_total_structure:
+                if size_label is not None:
+                    by_size_totals[size_label] = total_value
+                elif is_total_size_bucket:
+                    overall_total = total_value
+                continue
+
+            if size_label is not None:
+                by_size_counts[size_label][struct_key] = by_size_counts[size_label].get(struct_key, 0.0) + total_value
+            elif is_total_size_bucket:
+                overall_counts[struct_key] = overall_counts.get(struct_key, 0.0) + total_value
+
+        if overall_total <= 0.0:
+            overall_total = sum(overall_counts.values())
+        if overall_total > 0.0:
+            out["overall_pct"] = {k: v / overall_total for k, v in overall_counts.items()}
+
+        for size in out["size_order"]:
+            den = by_size_totals.get(size, 0.0)
+            if den <= 0.0:
+                den = sum(by_size_counts.get(size, {}).values())
+            if den > 0.0:
+                out["by_size_pct"][size] = {k: v / den for k, v in by_size_counts.get(size, {}).items()}
+            else:
+                out["by_size_pct"][size] = {}
+
         return out
 
-    overall_counts = {}
-    overall_total = 0.0
-    by_size_counts = {s: {} for s in out["size_order"]}
-    by_size_totals = {s: 0.0 for s in out["size_order"]}
-
-    for size_bucket_db, structure_db, total in rows:
-        size_raw = "" if size_bucket_db is None else str(size_bucket_db).strip()
-        struct_raw = "" if structure_db is None else str(structure_db).strip()
-        struct_key = nk(struct_raw)
-        if not struct_key:
-            continue
-        out["display_labels"].setdefault(struct_key, struct_raw)
-        total_value = float(total or 0.0)
-        size_norm = nk(size_raw)
-        size_label = canonical_household_size_label(size_raw)
-
-        is_total_structure = "total (estructura del hogar)" in struct_key
-        is_total_size_bucket = "total (tamano del hogar)" in size_norm
-
-        if is_total_structure:
-            if size_label is not None:
-                by_size_totals[size_label] = total_value
-            elif is_total_size_bucket:
-                overall_total = total_value
-            continue
-
-        if size_label is not None:
-            by_size_counts[size_label][struct_key] = by_size_counts[size_label].get(struct_key, 0.0) + total_value
-        elif is_total_size_bucket:
-            overall_counts[struct_key] = overall_counts.get(struct_key, 0.0) + total_value
-
-    if overall_total <= 0.0:
-        overall_total = sum(overall_counts.values())
-    if overall_total > 0.0:
-        out["overall_pct"] = {k: v / overall_total for k, v in overall_counts.items()}
-
-    for size in out["size_order"]:
-        den = by_size_totals.get(size, 0.0)
-        if den <= 0.0:
-            den = sum(by_size_counts.get(size, {}).values())
-        if den > 0.0:
-            out["by_size_pct"][size] = {k: v / den for k, v in by_size_counts.get(size, {}).items()}
-        else:
-            out["by_size_pct"][size] = {}
-
-    return out
+    return get_runtime_cached("derived", ("household_targets", code), signature, _load)
 
 
 def load_household_size_targets_from_db_sql(municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
@@ -387,6 +481,20 @@ def load_household_size_targets_from_db_sql(municipality_code=HOUSEHOLD_TARGET_M
         out["pct_by_size"][size_label] = pct_value
 
     return out
+
+
+_load_household_size_targets_from_db_sql_uncached = load_household_size_targets_from_db_sql
+
+
+def load_household_size_targets_from_db_sql(municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
+    code = str(municipality_code or "").strip().split()[0]
+    signature = (file_signature(DB_PATH), code)
+    return get_runtime_cached(
+        "derived",
+        ("household_size_targets", code),
+        signature,
+        lambda: _load_household_size_targets_from_db_sql_uncached(municipality_code),
+    )
 
 
 def build_household_size_monitor_rows(households, municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
@@ -518,6 +626,20 @@ def load_household_structure_focus_targets_from_db_sql(municipality_code=HOUSEHO
         out["by_size_pct"][size_label][struct_key] = float(percentage or 0.0) / 100.0
 
     return out
+
+
+_load_household_structure_focus_targets_from_db_sql_uncached = load_household_structure_focus_targets_from_db_sql
+
+
+def load_household_structure_focus_targets_from_db_sql(municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
+    code = str(municipality_code or "").strip().split()[0]
+    signature = (file_signature(DB_PATH), code)
+    return get_runtime_cached(
+        "derived",
+        ("household_structure_focus_targets", code),
+        signature,
+        lambda: _load_household_structure_focus_targets_from_db_sql_uncached(municipality_code),
+    )
 
 
 def build_household_structure_focus_rows(households, municipality_code=HOUSEHOLD_TARGET_MUNICIPALITY_CODE):
@@ -712,28 +834,31 @@ def canonical_stuck_agent(raw):
 
 
 def compute_stuck_removal_summary(events):
-    summary = {"total": 0, "car": 0, "taxi": 0, "unknown": 0}
-    if events is None or events.empty or "event_type" not in events.columns:
+    signature = object_cache_token(events)
+
+    def _build():
+        summary = {"total": 0, "car": 0, "taxi": 0, "unknown": 0}
+        if events is None or events.empty or "event_type" not in events.columns:
+            return summary
+
+        ev = events[events["event_type"] == "ROUTE_STUCK_REMOVAL"]
+        if ev.empty:
+            return summary
+
+        seen = set()
+        for _, row in ev.iterrows():
+            entity = nk(row.get("entity_id", ""))
+            if not entity or entity in seen:
+                continue
+            seen.add(entity)
+            details = parse_details_map(row.get("details", ""))
+            agent_raw = details.get("agent", row.get("related_id", ""))
+            agent = canonical_stuck_agent(agent_raw)
+            summary[agent] = int(summary.get(agent, 0)) + 1
+            summary["total"] += 1
         return summary
 
-    ev = events.copy()
-    ev["event_type"] = ev["event_type"].astype(str).str.strip().str.upper()
-    ev = ev[ev["event_type"] == "ROUTE_STUCK_REMOVAL"]
-    if ev.empty:
-        return summary
-
-    seen = set()
-    for _, row in ev.iterrows():
-        entity = nk(row.get("entity_id", ""))
-        if not entity or entity in seen:
-            continue
-        seen.add(entity)
-        details = parse_details_map(row.get("details", ""))
-        agent_raw = details.get("agent", row.get("related_id", ""))
-        agent = canonical_stuck_agent(agent_raw)
-        summary[agent] = int(summary.get(agent, 0)) + 1
-        summary["total"] += 1
-    return summary
+    return get_runtime_cached("derived", "stuck_removal_summary", signature, _build)
 
 
 def looks_like_car_vehicle_id(raw):
@@ -747,218 +872,230 @@ def looks_like_taxi_vehicle_id(raw):
 
 
 def compute_runtime_vehicle_pool(events):
-    summary = {"total": 0, "car": 0, "taxi": 0}
-    if events is None or events.empty or "entity_id" not in events.columns:
-        return summary
+    signature = object_cache_token(events)
 
-    entity_raw = events["entity_id"].astype(str).str.strip()
-    entity_lower = entity_raw.str.lower()
-    valid_mask = (entity_raw != "") & (~entity_lower.isin({"global", "switchboard", "queue"}))
-    if not valid_mask.any():
-        return summary
+    def _build():
+        summary = {"total": 0, "car": 0, "taxi": 0}
+        if events is None or events.empty or "entity_id" not in events.columns:
+            return summary
 
-    valid_entities = entity_lower[valid_mask]
-    car_prefix = valid_entities[valid_entities.str.startswith("normalcars")]
-    taxi_prefix = valid_entities[valid_entities.str.startswith("electriccars")]
+        entity_raw = events["entity_id"].astype(str).str.strip()
+        entity_lower = entity_raw.str.lower()
+        valid_mask = (entity_raw != "") & (~entity_lower.isin({"global", "switchboard", "queue"}))
+        if not valid_mask.any():
+            return summary
 
-    # Fast path: current logs use stable vehicle id prefixes.
-    car_ids = set(car_prefix.unique().tolist())
-    taxi_ids = set(taxi_prefix.unique().tolist())
-    if car_ids or taxi_ids:
+        valid_entities = entity_lower[valid_mask]
+        car_prefix = valid_entities[valid_entities.str.startswith("normalcars")]
+        taxi_prefix = valid_entities[valid_entities.str.startswith("electriccars")]
+
+        # Fast path: current logs use stable vehicle id prefixes.
+        car_ids = set(car_prefix.unique().tolist())
+        taxi_ids = set(taxi_prefix.unique().tolist())
+        if car_ids or taxi_ids:
+            summary["car"] = len(car_ids)
+            summary["taxi"] = len(taxi_ids)
+            summary["total"] = summary["car"] + summary["taxi"]
+            return summary
+
+        # Compatibility fallback for legacy logs without standard prefixes.
+        cols = [c for c in ["event_type", "entity_id", "related_id", "details"] if c in events.columns]
+        fallback = events.loc[valid_mask, cols].copy()
+        if fallback.empty:
+            return summary
+
+        if "event_type" in fallback.columns:
+            evt = fallback["event_type"].astype(str).str.strip().str.upper()
+        else:
+            evt = pd.Series([""] * len(fallback), index=fallback.index)
+        if "related_id" in fallback.columns:
+            rel = fallback["related_id"].astype(str).str.strip().str.lower()
+        else:
+            rel = pd.Series([""] * len(fallback), index=fallback.index)
+
+        candidate_mask = rel.isin({"car", "taxi"}) | evt.str.startswith("ROUTE_") | evt.str.startswith("TAXI_")
+        if not candidate_mask.any():
+            return summary
+
+        for _, row in fallback.loc[candidate_mask].iterrows():
+            entity = nk(row.get("entity_id", ""))
+            if not entity:
+                continue
+            details = parse_details_map(row.get("details", ""))
+            agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
+            related = nk(row.get("related_id", ""))
+
+            if agent == "car" or looks_like_car_vehicle_id(entity):
+                car_ids.add(entity)
+                continue
+            if agent == "taxi" or related == "taxi" or looks_like_taxi_vehicle_id(entity):
+                taxi_ids.add(entity)
+                continue
+
         summary["car"] = len(car_ids)
         summary["taxi"] = len(taxi_ids)
         summary["total"] = summary["car"] + summary["taxi"]
         return summary
 
-    # Compatibility fallback for legacy logs without standard prefixes.
-    cols = [c for c in ["event_type", "entity_id", "related_id", "details"] if c in events.columns]
-    fallback = events.loc[valid_mask, cols].copy()
-    if fallback.empty:
-        return summary
-
-    if "event_type" in fallback.columns:
-        evt = fallback["event_type"].astype(str).str.strip().str.upper()
-    else:
-        evt = pd.Series([""] * len(fallback), index=fallback.index)
-    if "related_id" in fallback.columns:
-        rel = fallback["related_id"].astype(str).str.strip().str.lower()
-    else:
-        rel = pd.Series([""] * len(fallback), index=fallback.index)
-
-    candidate_mask = rel.isin({"car", "taxi"}) | evt.str.startswith("ROUTE_") | evt.str.startswith("TAXI_")
-    if not candidate_mask.any():
-        return summary
-
-    for _, row in fallback.loc[candidate_mask].iterrows():
-        entity = nk(row.get("entity_id", ""))
-        if not entity:
-            continue
-        details = parse_details_map(row.get("details", ""))
-        agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
-        related = nk(row.get("related_id", ""))
-
-        if agent == "car" or looks_like_car_vehicle_id(entity):
-            car_ids.add(entity)
-            continue
-        if agent == "taxi" or related == "taxi" or looks_like_taxi_vehicle_id(entity):
-            taxi_ids.add(entity)
-            continue
-
-    summary["car"] = len(car_ids)
-    summary["taxi"] = len(taxi_ids)
-    summary["total"] = summary["car"] + summary["taxi"]
-    return summary
+    return get_runtime_cached("derived", "runtime_vehicle_pool", signature, _build)
 
 
 def compute_stuck_removal_rows(events):
-    if events is None or events.empty or "event_type" not in events.columns:
-        return []
+    signature = object_cache_token(events)
 
-    ev = events.copy()
-    ev["event_type"] = ev["event_type"].astype(str).str.strip().str.upper()
-    ev = ev[ev["event_type"] == "ROUTE_STUCK_REMOVAL"]
-    if ev.empty:
-        return []
+    def _build():
+        if events is None or events.empty or "event_type" not in events.columns:
+            return []
 
-    rows = []
-    for _, row in ev.iterrows():
-        details = parse_details_map(row.get("details", ""))
-        agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
-        phase = details.get("phase", "")
-        t_s = finite_float(row.get("time", 0.0), 0.0)
-        stuck_min = finite_float(details.get("stuck_minutes", None), None)
-        threshold_min = finite_float(details.get("threshold_minutes", None), None)
-        stuck_start_time = finite_float(details.get("stuck_start_time", None), None)
-        rows.append(
-            {
-                "time_s": round(t_s, 2),
-                "time_h": round(t_s / 3600.0, 2),
-                "vehicle_id": str(row.get("entity_id", "")),
-                "agent": agent,
-                "phase": str(phase) if str(phase).strip() else "-",
-                "stuck_min": round(stuck_min, 2) if stuck_min is not None else None,
-                "threshold_min": round(threshold_min, 2) if threshold_min is not None else None,
-                "stuck_start_s": round(stuck_start_time, 2) if stuck_start_time is not None else None,
-            }
-        )
+        ev = events[events["event_type"] == "ROUTE_STUCK_REMOVAL"]
+        if ev.empty:
+            return []
 
-    rows.sort(key=lambda r: finite_float(r.get("time_s", 0.0), 0.0), reverse=True)
-    return rows
+        rows = []
+        for _, row in ev.iterrows():
+            details = parse_details_map(row.get("details", ""))
+            agent = canonical_stuck_agent(details.get("agent", row.get("related_id", "")))
+            phase = details.get("phase", "")
+            t_s = finite_float(row.get("time", 0.0), 0.0)
+            stuck_min = finite_float(details.get("stuck_minutes", None), None)
+            threshold_min = finite_float(details.get("threshold_minutes", None), None)
+            stuck_start_time = finite_float(details.get("stuck_start_time", None), None)
+            rows.append(
+                {
+                    "time_s": round(t_s, 2),
+                    "time_h": round(t_s / 3600.0, 2),
+                    "vehicle_id": str(row.get("entity_id", "")),
+                    "agent": agent,
+                    "phase": str(phase) if str(phase).strip() else "-",
+                    "stuck_min": round(stuck_min, 2) if stuck_min is not None else None,
+                    "threshold_min": round(threshold_min, 2) if threshold_min is not None else None,
+                    "stuck_start_s": round(stuck_start_time, 2) if stuck_start_time is not None else None,
+                }
+            )
+
+        rows.sort(key=lambda r: finite_float(r.get("time_s", 0.0), 0.0), reverse=True)
+        return rows
+
+    return get_runtime_cached("derived", "stuck_removal_rows", signature, _build)
 
 
 def compute_route_planning_rows(events):
-    base_counts = {
-        "person_walking": {
-            "first_try_success": 0,
-            "recovered_after_retries": 0,
-            "started_without_route": 0,
-            "failed_after_retries": 0,
-            "attempts_sum": 0.0,
-            "attempts_n": 0,
-        },
-        "car": {
-            "first_try_success": 0,
-            "recovered_after_retries": 0,
-            "started_without_route": 0,
-            "failed_after_retries": 0,
-            "attempts_sum": 0.0,
-            "attempts_n": 0,
-        },
-    }
-    if events is None or events.empty or "event_type" not in events.columns:
-        return [], {}
+    signature = object_cache_token(events)
 
-    ev_all = events.copy()
-    ev_all["event_type"] = ev_all["event_type"].astype(str).str.strip().str.upper()
+    def _build():
+        base_counts = {
+            "person_walking": {
+                "first_try_success": 0,
+                "recovered_after_retries": 0,
+                "started_without_route": 0,
+                "failed_after_retries": 0,
+                "attempts_sum": 0.0,
+                "attempts_n": 0,
+            },
+            "car": {
+                "first_try_success": 0,
+                "recovered_after_retries": 0,
+                "started_without_route": 0,
+                "failed_after_retries": 0,
+                "attempts_sum": 0.0,
+                "attempts_n": 0,
+            },
+        }
+        if events is None or events.empty or "event_type" not in events.columns:
+            return [], {}
 
-    # Backward-compatible tag: old runs reported this case in ROUTE_EXEC/LEGACY_FALLBACK only.
-    started_without_route_entities = set()
-    legacy_exec = ev_all[ev_all["event_type"] == "ROUTE_EXEC"]
-    for _, row in legacy_exec.iterrows():
-        d = parse_details_map(row.get("details", ""))
-        if canonical_route_agent(d.get("agent", "")) != "person_walking":
-            continue
-        rk = nk(d.get("result", ""))
-        if "started_without_helper_path" in rk or "started_without_route" in rk:
+        ev_all = events
+
+        # Backward-compatible tag: old runs reported this case in ROUTE_EXEC/LEGACY_FALLBACK only.
+        started_without_route_entities = set()
+        legacy_exec = ev_all[ev_all["event_type"] == "ROUTE_EXEC"]
+        for _, row in legacy_exec.iterrows():
+            d = parse_details_map(row.get("details", ""))
+            if canonical_route_agent(d.get("agent", "")) != "person_walking":
+                continue
+            rk = nk(d.get("result", ""))
+            if "started_without_helper_path" in rk or "started_without_route" in rk:
+                entity = nk(row.get("entity_id", ""))
+                if entity:
+                    started_without_route_entities.add(entity)
+
+        legacy_fallback = ev_all[ev_all["event_type"] == "ROUTE_PLAN_LEGACY_FALLBACK"]
+        for _, row in legacy_fallback.iterrows():
             entity = nk(row.get("entity_id", ""))
             if entity:
                 started_without_route_entities.add(entity)
 
-    legacy_fallback = ev_all[ev_all["event_type"] == "ROUTE_PLAN_LEGACY_FALLBACK"]
-    for _, row in legacy_fallback.iterrows():
-        entity = nk(row.get("entity_id", ""))
-        if entity:
-            started_without_route_entities.add(entity)
+        ev = ev_all[ev_all["event_type"] == "ROUTE_PLAN"]
+        if ev.empty:
+            return [], {}
 
-    ev = ev_all[ev_all["event_type"] == "ROUTE_PLAN"]
-    if ev.empty:
-        return [], {}
+        seen = set()
+        for _, row in ev.iterrows():
+            details = parse_details_map(row.get("details", ""))
+            agent = canonical_route_agent(details.get("agent", ""))
+            result = canonical_route_result(details.get("result", ""))
+            if agent is None or result is None:
+                continue
+            entity = nk(row.get("entity_id", ""))
+            if agent == "person_walking" and result == "failed_after_retries" and entity in started_without_route_entities:
+                result = "started_without_route"
+            attempts = int(finite_float(details.get("attempts", 0.0), 0.0))
+            time_bin = round(finite_float(row.get("time", 0.0), 0.0), 2)
+            dedup_key = (agent, entity, result, attempts, time_bin)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            base_counts[agent][result] += 1
+            attempts_f = finite_float(details.get("attempts", None), None)
+            if attempts_f is not None:
+                base_counts[agent]["attempts_sum"] += attempts_f
+                base_counts[agent]["attempts_n"] += 1
 
-    seen = set()
-    for _, row in ev.iterrows():
-        details = parse_details_map(row.get("details", ""))
-        agent = canonical_route_agent(details.get("agent", ""))
-        result = canonical_route_result(details.get("result", ""))
-        if agent is None or result is None:
-            continue
-        entity = nk(row.get("entity_id", ""))
-        if agent == "person_walking" and result == "failed_after_retries" and entity in started_without_route_entities:
-            result = "started_without_route"
-        attempts = int(finite_float(details.get("attempts", 0.0), 0.0))
-        time_bin = round(finite_float(row.get("time", 0.0), 0.0), 2)
-        dedup_key = (agent, entity, result, attempts, time_bin)
-        if dedup_key in seen:
-            continue
-        seen.add(dedup_key)
-        base_counts[agent][result] += 1
-        attempts_f = finite_float(details.get("attempts", None), None)
-        if attempts_f is not None:
-            base_counts[agent]["attempts_sum"] += attempts_f
-            base_counts[agent]["attempts_n"] += 1
-
-    rows = []
-    summary = {}
-    labels = {"person_walking": "Person (walking)", "car": "Car trips"}
-    for agent in ["person_walking", "car"]:
-        c = base_counts[agent]
-        failed_hard = int(c["failed_after_retries"])
-        started_without_route = int(c["started_without_route"])
-        failed_total = failed_hard + started_without_route
-        total = int(c["first_try_success"] + c["recovered_after_retries"] + failed_total)
-        if total <= 0:
-            continue
-        first_pct = 100.0 * c["first_try_success"] / total
-        recovered_pct = 100.0 * c["recovered_after_retries"] / total
-        failed_pct = 100.0 * failed_total / total
-        avg_attempts = (c["attempts_sum"] / c["attempts_n"]) if c["attempts_n"] > 0 else 0.0
-        rows.append(
-            {
-                "agent": labels.get(agent, agent),
+        rows = []
+        summary = {}
+        labels = {"person_walking": "Person (walking)", "car": "Car trips"}
+        for agent in ["person_walking", "car"]:
+            c = base_counts[agent]
+            failed_hard = int(c["failed_after_retries"])
+            started_without_route = int(c["started_without_route"])
+            failed_total = failed_hard + started_without_route
+            total = int(c["first_try_success"] + c["recovered_after_retries"] + failed_total)
+            if total <= 0:
+                continue
+            first_pct = 100.0 * c["first_try_success"] / total
+            recovered_pct = 100.0 * c["recovered_after_retries"] / total
+            failed_pct = 100.0 * failed_total / total
+            avg_attempts = (c["attempts_sum"] / c["attempts_n"]) if c["attempts_n"] > 0 else 0.0
+            rows.append(
+                {
+                    "agent": labels.get(agent, agent),
+                    "samples": total,
+                    "first_try_count": int(c["first_try_success"]),
+                    "recovered_count": int(c["recovered_after_retries"]),
+                    "started_without_route_count": int(started_without_route),
+                    "failed_no_route_count": int(failed_hard),
+                    "failed_count": int(failed_total),
+                    "first_try_pct": round(first_pct, 2),
+                    "recovered_pct": round(recovered_pct, 2),
+                    "failed_pct": round(failed_pct, 2),
+                    "avg_attempts": round(avg_attempts, 2),
+                }
+            )
+            summary[agent] = {
                 "samples": total,
                 "first_try_count": int(c["first_try_success"]),
                 "recovered_count": int(c["recovered_after_retries"]),
                 "started_without_route_count": int(started_without_route),
                 "failed_no_route_count": int(failed_hard),
                 "failed_count": int(failed_total),
-                "first_try_pct": round(first_pct, 2),
-                "recovered_pct": round(recovered_pct, 2),
-                "failed_pct": round(failed_pct, 2),
-                "avg_attempts": round(avg_attempts, 2),
+                "first_try_pct": first_pct,
+                "recovered_pct": recovered_pct,
+                "failed_pct": failed_pct,
+                "avg_attempts": avg_attempts,
             }
-        )
-        summary[agent] = {
-            "samples": total,
-            "first_try_count": int(c["first_try_success"]),
-            "recovered_count": int(c["recovered_after_retries"]),
-            "started_without_route_count": int(started_without_route),
-            "failed_no_route_count": int(failed_hard),
-            "failed_count": int(failed_total),
-            "first_try_pct": first_pct,
-            "recovered_pct": recovered_pct,
-            "failed_pct": failed_pct,
-            "avg_attempts": avg_attempts,
-        }
-    return rows, summary
+        return rows, summary
+
+    return get_runtime_cached("derived", "route_planning_rows", signature, _build)
 
 
 def route_planning_figure(route_plan_rows):
@@ -1152,62 +1289,70 @@ def normdist(values):
 
 
 def extract_mode_choice_events(events):
-    if events is None or events.empty or "event_type" not in events.columns:
-        return pd.DataFrame(columns=["distance_class", "mode"])
-    base = events.copy()
-    base["event_type"] = base["event_type"].astype(str).str.strip().str.upper()
-    base = base[base["event_type"] == "MODE_CHOICE"]
-    if base.empty:
-        return pd.DataFrame(columns=["distance_class", "mode"])
+    signature = object_cache_token(events)
 
-    rows = []
-    for _, row in base.iterrows():
-        d = parse_details_map(row.get("details", ""))
-        klass = nk(d.get("distance_class", ""))
-        mode = nk(d.get("chosen", ""))
-        if klass not in {"short", "long"} or mode == "":
-            continue
-        rows.append({"distance_class": klass, "mode": mode})
-    return pd.DataFrame(rows, columns=["distance_class", "mode"])
+    def _build():
+        if events is None or events.empty or "event_type" not in events.columns:
+            return pd.DataFrame(columns=["distance_class", "mode"])
+        base = events[events["event_type"] == "MODE_CHOICE"]
+        if base.empty:
+            return pd.DataFrame(columns=["distance_class", "mode"])
+
+        rows = []
+        for _, row in base.iterrows():
+            d = parse_details_map(row.get("details", ""))
+            klass = nk(d.get("distance_class", ""))
+            mode = nk(d.get("chosen", ""))
+            if klass not in {"short", "long"} or mode == "":
+                continue
+            rows.append({"distance_class": klass, "mode": mode})
+        return pd.DataFrame(rows, columns=["distance_class", "mode"])
+
+    return get_runtime_cached("derived", "mode_choice_events", signature, _build)
 
 
 def load_transport_targets_from_db(municipality_code=TRANSPORT_TARGET_MUNICIPALITY_CODE):
-    out = {"short": {}, "long": {}}
-    if not DB_PATH.exists():
-        return out
     code = str(municipality_code or "").strip().split()[0]
+    signature = (file_signature(DB_PATH), code)
 
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        rows = conn.execute(
-            """
-            SELECT distance_class, transport_mode, target_share
-            FROM transport_mode_targets
-            WHERE municipality_code = ?
-            """,
-            (code,),
-        ).fetchall()
-        if not rows:
+    def _load():
+        out = {"short": {}, "long": {}}
+        if not DB_PATH.exists():
+            return out
+
+        try:
+            conn = sqlite3.connect(DB_PATH)
             rows = conn.execute(
                 """
                 SELECT distance_class, transport_mode, target_share
                 FROM transport_mode_targets
-                WHERE municipality_code = ''
+                WHERE municipality_code = ?
                 """,
+                (code,),
             ).fetchall()
-        conn.close()
-    except sqlite3.Error:
+            if not rows:
+                rows = conn.execute(
+                    """
+                    SELECT distance_class, transport_mode, target_share
+                    FROM transport_mode_targets
+                    WHERE municipality_code = ''
+                    """,
+                ).fetchall()
+            conn.close()
+        except sqlite3.Error:
+            return out
+
+        for distance_class, mode, share in rows:
+            klass = nk(distance_class)
+            m = nk(mode)
+            if klass in {"short", "long"} and m:
+                out.setdefault(klass, {})
+                out[klass][m] = finite_float(share, 0.0)
+        out["short"] = normdist(out.get("short", {}))
+        out["long"] = normdist(out.get("long", {}))
         return out
 
-    for distance_class, mode, share in rows:
-        klass = nk(distance_class)
-        m = nk(mode)
-        if klass in {"short", "long"} and m:
-            out.setdefault(klass, {})
-            out[klass][m] = finite_float(share, 0.0)
-    out["short"] = normdist(out.get("short", {}))
-    out["long"] = normdist(out.get("long", {}))
-    return out
+    return get_runtime_cached("derived", ("transport_targets", code), signature, _load)
 
 
 def compute_observed_mode_shares(trips, mode_choices, distance_filter="all"):
@@ -1477,6 +1622,197 @@ def starts_per_hour_figure(trips):
     return fig
 
 
+def purpose_display_label(raw):
+    key = nk(raw)
+    if not key:
+        return "Unknown"
+    if key in PURPOSE_DISPLAY:
+        return PURPOSE_DISPLAY[key]
+    return str(raw).replace("_", " ").strip().title()
+
+
+def purpose_group_label(raw):
+    key = nk(raw)
+    if key == "working":
+        return "Work"
+    if key == "resting":
+        return "Home / Rest"
+    if key == "accompany":
+        return "Accompany"
+    if key.startswith("go_"):
+        return "Activity"
+    return "Other / Unknown"
+
+
+def prepare_trip_purpose_base(trips):
+    signature = object_cache_token(trips)
+
+    def _build():
+        if trips.empty or "start_time" not in trips.columns:
+            return pd.DataFrame()
+        base = trips.dropna(subset=["start_time"]).copy()
+        if base.empty:
+            return pd.DataFrame()
+        if "purpose" not in base.columns:
+            base["purpose"] = "unknown"
+        else:
+            base["purpose"] = base["purpose"].fillna("unknown").astype(str).str.strip().str.lower()
+            base.loc[base["purpose"] == "", "purpose"] = "unknown"
+        if "mode" not in base.columns:
+            base["mode"] = "unknown"
+        else:
+            base["mode"] = base["mode"].fillna("unknown").astype(str).str.strip().str.lower()
+            base.loc[base["mode"] == "", "mode"] = "unknown"
+        if "person_id" not in base.columns:
+            base["person_id"] = ""
+        base["hour_bin"] = (base["start_time"] / 3600.0).astype(int)
+        base["purpose_group"] = base["purpose"].map(purpose_group_label)
+        base["purpose_label"] = base["purpose"].map(purpose_display_label)
+        return base
+
+    return get_runtime_cached("derived", "trip_purpose_base", signature, _build)
+
+
+def build_hour_slider_marks(min_hour, max_hour):
+    if max_hour <= min_hour:
+        return {int(min_hour): str(int(min_hour))}
+    span = max_hour - min_hour
+    if span <= 12:
+        step = 1
+    elif span <= 24:
+        step = 2
+    else:
+        step = max(1, int(round(span / 12.0)))
+    marks = {int(h): str(int(h)) for h in range(int(min_hour), int(max_hour) + 1, step)}
+    marks[int(max_hour)] = str(int(max_hour))
+    return marks
+
+
+def purpose_hour_figure(trips, selected_hour):
+    base = prepare_trip_purpose_base(trips)
+    if base.empty:
+        fig = go.Figure()
+        fig.add_annotation(text="No trip purpose data", showarrow=False, font={"size": 18})
+        fig.update_layout(template="plotly_white", margin={"l": 20, "r": 20, "t": 40, "b": 20})
+        return fig
+
+    grouped = base.groupby(["hour_bin", "purpose_group"], as_index=False).size()
+    fig = go.Figure()
+    for group_label in PURPOSE_GROUP_ORDER:
+        g = grouped[grouped["purpose_group"] == group_label]
+        if g.empty:
+            continue
+        fig.add_trace(
+            go.Bar(
+                x=g["hour_bin"],
+                y=g["size"],
+                name=group_label,
+                marker={"color": PURPOSE_GROUP_COLORS.get(group_label)},
+            )
+        )
+
+    if selected_hour is not None:
+        try:
+            selected_hour = int(selected_hour)
+            fig.add_vrect(
+                x0=selected_hour - 0.45,
+                x1=selected_hour + 0.45,
+                fillcolor="#8ecae6",
+                opacity=0.15,
+                line_width=0,
+                layer="below",
+            )
+        except (TypeError, ValueError):
+            pass
+
+    fig.update_layout(
+        title="Trip Starts by Purpose Group",
+        xaxis_title="Hour from simulation start",
+        yaxis_title="Trips started",
+        barmode="stack",
+        template="plotly_white",
+        margin={"l": 20, "r": 20, "t": 50, "b": 30},
+        legend={"orientation": "h", "yanchor": "bottom", "y": -0.2, "xanchor": "center", "x": 0.5},
+        hoverlabel={"font": {"size": 14}},
+    )
+    return fig
+
+
+def summarize_mode_mix(series):
+    vals = series.fillna("unknown").astype(str).str.strip().str.lower()
+    counts = vals.value_counts()
+    return ", ".join(f"{mode}:{int(count)}" for mode, count in counts.items())
+
+
+def purpose_hour_rows(trips, selected_hour):
+    base = prepare_trip_purpose_base(trips)
+    if base.empty:
+        return []
+    try:
+        selected_hour = int(selected_hour)
+    except (TypeError, ValueError):
+        selected_hour = int(base["hour_bin"].max())
+
+    scoped = base[base["hour_bin"] == selected_hour].copy()
+    if scoped.empty:
+        return []
+
+    grouped = (
+        scoped.groupby(["purpose_group", "purpose_label"], as_index=False)
+        .agg(
+            trips=("purpose_label", "size"),
+            persons=("person_id", pd.Series.nunique),
+            modes=("mode", summarize_mode_mix),
+        )
+    )
+    total_trips = int(grouped["trips"].sum())
+    grouped["share_pct"] = grouped["trips"].apply(lambda v: round((100.0 * float(v) / total_trips), 2) if total_trips > 0 else 0.0)
+    group_rank = {label: idx for idx, label in enumerate(PURPOSE_GROUP_ORDER)}
+    grouped["_group_rank"] = grouped["purpose_group"].map(lambda x: group_rank.get(x, 999))
+    grouped = grouped.sort_values(["_group_rank", "trips", "purpose_label"], ascending=[True, False, True])
+
+    rows = []
+    for _, row in grouped.iterrows():
+        rows.append(
+            {
+                "group": str(row["purpose_group"]),
+                "purpose": str(row["purpose_label"]),
+                "trips": int(row["trips"]),
+                "persons": int(row["persons"]),
+                "share_pct": round(float(row["share_pct"]), 2),
+                "modes": str(row["modes"]),
+            }
+        )
+    return rows
+
+
+def purpose_hour_summary_children(trips, selected_hour):
+    base = prepare_trip_purpose_base(trips)
+    if base.empty:
+        return "No trip purpose data available."
+    try:
+        selected_hour = int(selected_hour)
+    except (TypeError, ValueError):
+        selected_hour = int(base["hour_bin"].max())
+
+    scoped = base[base["hour_bin"] == selected_hour].copy()
+    if scoped.empty:
+        return f"No trips started in hour {selected_hour}."
+
+    counts = scoped["purpose_group"].value_counts()
+    total = int(len(scoped))
+    work = int(counts.get("Work", 0))
+    rest = int(counts.get("Home / Rest", 0))
+    accompany = int(counts.get("Accompany", 0))
+    activity = int(counts.get("Activity", 0))
+    other = int(counts.get("Other / Unknown", 0))
+    return (
+        f"Hour {selected_hour} from simulation start | trips started: {total} | "
+        f"work: {work} | home/rest: {rest} | accompany: {accompany} | "
+        f"activities: {activity} | other/unknown: {other}"
+    )
+
+
 def work_schedule_hist_figure(report):
     ws = report.get("work_schedule_assignment", {}) if report else {}
     start_counts = ws.get("start_counts", {}) or {}
@@ -1569,43 +1905,53 @@ def build_discrepancy_rows(report):
 
 
 def build_population_monitor_rows(report, households):
-    rows = []
-    comparisons = report.get("real_vs_sim", {}).get("comparisons", {})
-    pop_counts = report.get("population_counts", {})
-    work_sched = report.get("work_schedule_assignment", {})
-    count_group_for_dim = {
-        "household_size": "household_size",
-        "gender": "gender",
-        "orientation": "orientation",
-        "couple_age_gap": "couple_age_gap",
-        "age_range": "age_range",
-        "district": "district",
-    }
-    for dim, comp in comparisons.items():
-        if not comp.get("available", False):
-            continue
-        group_name = count_group_for_dim.get(dim)
-        counts = pop_counts.get(group_name, {}) if group_name else {}
-        if dim == "work_start_hour":
-            counts = {str(k): int(v) for k, v in (work_sched.get("start_counts", {}) or {}).items()}
-        for x in comp.get("rows", []):
-            raw_category = str(x.get("category", ""))
-            display_category = household_category_display_label(raw_category) if dim.startswith("household") else raw_category
-            rows.append(
-                {
-                    "dimension": dim,
-                    "category": display_category,
-                    "count": int(counts.get(raw_category, 0)),
-                    "sim_pct": round(float(x.get("sim_share", 0.0)) * 100.0, 2),
-                    "target_pct": round(float(x.get("target_share", 0.0)) * 100.0, 2),
-                    "delta_pct": round(float(x.get("delta", 0.0)) * 100.0, 2),
-                    "abs_delta_pct": round(float(x.get("abs_delta", 0.0)) * 100.0, 2),
-                }
-            )
-    rows.extend(build_household_size_monitor_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
-    rows.extend(build_household_structure_focus_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
-    rows.extend(build_household_structure_monitor_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
-    return rows
+    signature = (
+        object_cache_token(report),
+        object_cache_token(households),
+        file_signature(DB_PATH),
+        HOUSEHOLD_TARGET_MUNICIPALITY_CODE,
+    )
+
+    def _build():
+        rows = []
+        comparisons = report.get("real_vs_sim", {}).get("comparisons", {})
+        pop_counts = report.get("population_counts", {})
+        work_sched = report.get("work_schedule_assignment", {})
+        count_group_for_dim = {
+            "household_size": "household_size",
+            "gender": "gender",
+            "orientation": "orientation",
+            "couple_age_gap": "couple_age_gap",
+            "age_range": "age_range",
+            "district": "district",
+        }
+        for dim, comp in comparisons.items():
+            if not comp.get("available", False):
+                continue
+            group_name = count_group_for_dim.get(dim)
+            counts = pop_counts.get(group_name, {}) if group_name else {}
+            if dim == "work_start_hour":
+                counts = {str(k): int(v) for k, v in (work_sched.get("start_counts", {}) or {}).items()}
+            for x in comp.get("rows", []):
+                raw_category = str(x.get("category", ""))
+                display_category = household_category_display_label(raw_category) if dim.startswith("household") else raw_category
+                rows.append(
+                    {
+                        "dimension": dim,
+                        "category": display_category,
+                        "count": int(counts.get(raw_category, 0)),
+                        "sim_pct": round(float(x.get("sim_share", 0.0)) * 100.0, 2),
+                        "target_pct": round(float(x.get("target_share", 0.0)) * 100.0, 2),
+                        "delta_pct": round(float(x.get("delta", 0.0)) * 100.0, 2),
+                        "abs_delta_pct": round(float(x.get("abs_delta", 0.0)) * 100.0, 2),
+                    }
+                )
+        rows.extend(build_household_size_monitor_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
+        rows.extend(build_household_structure_focus_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
+        rows.extend(build_household_structure_monitor_rows(households, HOUSEHOLD_TARGET_MUNICIPALITY_CODE))
+        return rows
+
+    return get_runtime_cached("derived", "population_monitor_rows", signature, _build)
 
 
 def split_population_monitor_rows(rows):
@@ -2212,6 +2558,54 @@ app.layout = html.Div(
             ],
         ),
         html.Div(
+            style={"marginTop": "12px", "background": "#16202f", "border": "1px solid #223147", "borderRadius": "10px", "padding": "10px"},
+            children=[
+                html.H4("What People Are Doing by Hour", style={"margin": "8px 10px", "color": "#f3f6fb"}),
+                html.Div(
+                    id="purpose-hour-summary",
+                    style={"margin": "0 10px 10px 10px", "color": "#a8b6cc", "fontSize": "13px"},
+                ),
+                html.Div(
+                    style={"margin": "0 10px 12px 10px"},
+                    children=[
+                        html.Div("Selected hour from simulation start:", style={"color": "#d6dfed", "fontSize": "13px", "marginBottom": "6px"}),
+                        dcc.Slider(
+                            id="purpose-hour-slider",
+                            min=0,
+                            max=0,
+                            step=1,
+                            value=0,
+                            marks={0: "0"},
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                    ],
+                ),
+                html.Div(
+                    style={"display": "grid", "gridTemplateColumns": "1.4fr 1fr", "gap": "12px"},
+                    children=[
+                        dcc.Graph(id="purpose-hour-chart", config={"displaylogo": False}),
+                        dash_table.DataTable(
+                            id="purpose-hour-table",
+                            columns=[
+                                {"name": "Group", "id": "group"},
+                                {"name": "Purpose", "id": "purpose"},
+                                {"name": "Trips", "id": "trips"},
+                                {"name": "Persons", "id": "persons"},
+                                {"name": "Share (%)", "id": "share_pct"},
+                                {"name": "Modes", "id": "modes"},
+                            ],
+                            data=[],
+                            page_size=12,
+                            sort_action="native",
+                            style_as_list_view=True,
+                            style_cell={"padding": "6px", "fontSize": "13px", "textAlign": "left", "backgroundColor": "#16202f", "color": "#f3f6fb", "border": "1px solid #223147"},
+                            style_header={"fontWeight": "bold", "backgroundColor": "#1f2c40", "color": "#f3f6fb", "border": "1px solid #2b3a50"},
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        html.Div(
             style={"marginTop": "12px"},
             children=[dcc.Graph(id="work-schedule-hist", config={"displaylogo": False})],
         ),
@@ -2311,6 +2705,49 @@ app.layout = html.Div(
         ),
     ],
 )
+
+
+@app.callback(
+    Output("purpose-hour-slider", "min"),
+    Output("purpose-hour-slider", "max"),
+    Output("purpose-hour-slider", "marks"),
+    Output("purpose-hour-slider", "value"),
+    Input("refresh", "n_intervals"),
+    State("purpose-hour-slider", "value"),
+)
+def sync_purpose_hour_slider(_, current_value):
+    trips = load_trips()
+    base = prepare_trip_purpose_base(trips)
+    if base.empty:
+        return 0, 0, {0: "0"}, 0
+
+    min_hour = int(base["hour_bin"].min())
+    max_hour = int(base["hour_bin"].max())
+    marks = build_hour_slider_marks(min_hour, max_hour)
+
+    try:
+        current_value = int(current_value)
+    except (TypeError, ValueError):
+        current_value = max_hour
+    if current_value < min_hour or current_value > max_hour:
+        current_value = max_hour
+
+    return min_hour, max_hour, marks, current_value
+
+
+@app.callback(
+    Output("purpose-hour-summary", "children"),
+    Output("purpose-hour-chart", "figure"),
+    Output("purpose-hour-table", "data"),
+    Input("refresh", "n_intervals"),
+    Input("purpose-hour-slider", "value"),
+)
+def refresh_purpose_hour_section(_, selected_hour):
+    trips = load_trips()
+    summary = purpose_hour_summary_children(trips, selected_hour)
+    fig = purpose_hour_figure(trips, selected_hour)
+    rows = purpose_hour_rows(trips, selected_hour)
+    return summary, fig, rows
 
 
 @app.callback(
