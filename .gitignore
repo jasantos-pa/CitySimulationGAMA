@@ -1,4 +1,7 @@
-/docs/
+/Documentacion/
+/CITYSIMULATOR/
+/site/
+/.github/agents/
 /.gama*/
 **/.gama*/
 
@@ -7,3 +10,4 @@
 !/models/dashboard_households.py
 !/models/dashboard_monitor.py
 !/models/CitySimulation-updated.gaml
+!/models/CitySimulation-updated-activities.gaml
