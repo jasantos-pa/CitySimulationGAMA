@@ -52,6 +52,7 @@ class RunArchiveTests(unittest.TestCase):
         self.assertIsNone(manifest["effective_runtime"])
         self.assertEqual("2025-06-4", manifest["gama"]["declared_branch"])
         self.assertEqual("42.0", ET.parse(run_dir / "plan.xml").find("Simulation").get("seed"))
+        self.assertEqual(str((self.gama / "headless").resolve()), manifest["launch"]["cwd"])
 
     def test_existing_run_is_not_overwritten(self):
         run_dir, _ = self.prepare()
