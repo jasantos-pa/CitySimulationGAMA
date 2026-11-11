@@ -11,3 +11,7 @@
 !/models/dashboard_monitor.py
 !/models/CitySimulation-updated.gaml
 !/models/CitySimulation-updated-activities.gaml
+
+/runs/
+__pycache__/
+*.pyc

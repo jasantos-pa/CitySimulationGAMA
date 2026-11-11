@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "inspected_date": "2026-11-10",
+  "timezone": "Europe/Madrid",
+  "published_main": "2541627cbdd321fea91f0b6502206ed6e8f2eb68",
+  "local_head": "1c93303dd990366a2f5d77ca682726eb7c3d3a92",
+  "scope": "GAML files under models in the original research workspace; metadata only, not a backup or stability certification.",
+  "variants": [
+    {
+      "path": "models/CitySimulation-MVP.gaml",
+      "sha256": "9bf86f40bd04384c2039bbee5ae1d1c8fac3d7e86c4d0e8a7f7b16e9b8d03617",
+      "git_blob_lf": "a15e3f50a74af1408092c59074792c9671a5e977",
+      "bytes": 154822,
+      "lines": 3056,
+      "modified_local": "2026-02-25T16:56:06.672514",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-MVP2.gaml",
+      "sha256": "9464d2519c220e8ac5e7fa7075af5c4cc5eda953c1e178c7667178ac7ce062ce",
+      "git_blob_lf": "4d07268943945bea836022ddd5db4fccc330f9fa",
+      "bytes": 176425,
+      "lines": 3319,
+      "modified_local": "2026-02-25T16:56:25.183012",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal.gaml",
+      "sha256": "6a180dc39871e304f41f118608dc39178b8489a43eb241cf9a2c3284924dc70e",
+      "git_blob_lf": "4a95b4546cd48eddc4981464d50a8cb0ccf73518",
+      "bytes": 310140,
+      "lines": 6102,
+      "modified_local": "2026-03-09T10:07:34.163408",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal2.gaml",
+      "sha256": "2aa0a5c701bc0585243ff76942767caf90cc15199d6698fcde0d7778ed807cbb",
+      "git_blob_lf": "35598d139cb5f8ec97326070013c4d0652e5a12d",
+      "bytes": 321443,
+      "lines": 6308,
+      "modified_local": "2026-03-09T20:49:59.542267",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal3.gaml",
+      "sha256": "6fc751a3425bd98d9330eeb30c842e4092b87f73bd8784f44c6523ffa069152b",
+      "git_blob_lf": "f44409e5c31f7bdedf06ed4d0c3150d580d5ecc8",
+      "bytes": 357999,
+      "lines": 7060,
+      "modified_local": "2026-03-10T15:58:27.100649",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal4.gaml",
+      "sha256": "418e7486032f551026e5eba2ccd690aa69962d6e9b77715ff37627be979123ab",
+      "git_blob_lf": "9bd39f914714bc9c07f418e826e895c995c8a034",
+      "bytes": 365537,
+      "lines": 7235,
+      "modified_local": "2026-03-13T12:46:16.676764",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal4clean.gaml",
+      "sha256": "7f319b83bcc1e11e0a9d81057acb0acc922b126398258a65dd80112729881a2a",
+      "git_blob_lf": "4679dbe0f357040baa6a735a63eb430068d112c0",
+      "bytes": 384287,
+      "lines": 7641,
+      "modified_local": "2026-03-16T15:55:40.672755",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal4cleanHEADLESS.gaml",
+      "sha256": "182f85c123d7cb9784a06f6ef72f1cefdf8ca7a4adb706c57b65e0c74cc41196",
+      "git_blob_lf": "e7be4f404953d911b77039c203bb7ba3767b8284",
+      "bytes": 386706,
+      "lines": 7687,
+      "modified_local": "2026-03-16T19:42:14.436852",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal4cleanWOF.gaml",
+      "sha256": "dd1970356564bdf7928cfe01073bb9b61efb41e77afa49cab23134afe2bb4141",
+      "git_blob_lf": "cfc1aadcdf28023b2bcd223c3f965b2c48144f81",
+      "bytes": 391371,
+      "lines": 7791,
+      "modified_local": "2026-03-18T14:44:18.952704",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal5.gaml",
+      "sha256": "86d56dbfbdf39cbcdefd60eb9a6a2ed47769343d645bfc06556f9eb4304d90e3",
+      "git_blob_lf": "0142046fa69f4d94df09d48e1b61250261514f21",
+      "bytes": 372086,
+      "lines": 7370,
+      "modified_local": "2026-03-11T09:57:38.648172",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population-modal6.gaml",
+      "sha256": "a810c36bfcd9f3b25415e2fa2c679968e705d79f69f81e61b98f306a269575ef",
+      "git_blob_lf": "a9073e018dbda2fc23b89898685bfab6e2c0f6fb",
+      "bytes": 391456,
+      "lines": 7773,
+      "modified_local": "2026-03-18T16:28:57.425848",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-population.gaml",
+      "sha256": "4297e7c887302f593e606f44995425ac110839ba5929d2020aad5d5e9df3a415",
+      "git_blob_lf": "ac055d5c7cad7dce4d1d54eaca2bef1898429ea4",
+      "bytes": 249920,
+      "lines": 4600,
+      "modified_local": "2026-02-25T16:56:25.190185",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-updated-activities copy.gaml",
+      "sha256": "3c596892def64310f4ed6008a4917a1fda8cd99362d4077205e3f8c4dab023f3",
+      "git_blob_lf": "7a5d43359845d09b78b2b3ad7b583b25865dd95f",
+      "bytes": 376730,
+      "lines": 7493,
+      "modified_local": "2026-05-22T14:56:59.012440",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-updated-activities.gaml",
+      "sha256": "401e02f5e88c5bb56dd94456672c05b8c8184172c3637fb44591db7c6412bc33",
+      "git_blob_lf": "834d40509a7a1a13d74814fb66e371b13e101782",
+      "bytes": 384421,
+      "lines": 7682,
+      "modified_local": "2026-04-30T12:53:00.517517",
+      "tracked_at_inspection": true
+    },
+    {
+      "path": "models/CitySimulation-updated-activities2-solvingStuck copy.gaml",
+      "sha256": "1caf33774258da4600382293dafe68403f54cfbdc63290f9be2ff3e6630392ba",
+      "git_blob_lf": "178235c9a906b31a67c7c52a78ebbcd1287cee9d",
+      "bytes": 408946,
+      "lines": 8255,
+      "modified_local": "2026-06-06T23:52:37.082051",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-updated-activities2-solvingStuck.gaml",
+      "sha256": "06cec4a9bb1c5f3419129e00b81aedd2de23364879601352cfa40c940f52e65d",
+      "git_blob_lf": "76d806a1f01ce76f51be41d75efb61e48d1badfc",
+      "bytes": 403781,
+      "lines": 8128,
+      "modified_local": "2026-05-11T22:14:43.900088",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-updated-activities2.gaml",
+      "sha256": "869e6efc84bccc6faabe7e05791dc3ad0db6a5e6d2aa6e475ce912833f672394",
+      "git_blob_lf": "5c415bcbe9ca3c317241a676287be9970c01546a",
+      "bytes": 385733,
+      "lines": 7697,
+      "modified_local": "2026-05-09T20:11:40.631879",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation-updated.gaml",
+      "sha256": "d991e9d41df8de513820903009023bc1a2a729d43fe686bead4b87e334a9d420",
+      "git_blob_lf": "29b117d804db76104729fc917aeacbe43b7d9dcc",
+      "bytes": 377591,
+      "lines": 7540,
+      "modified_local": "2026-04-23T10:40:45.293143",
+      "tracked_at_inspection": true
+    },
+    {
+      "path": "models/CitySimulation-updated2.gaml",
+      "sha256": "10dd4af2f2bfa3fb27d609437b992a63ce25cf87b466a90fdd1ed71f5668a781",
+      "git_blob_lf": "b82c973222a5aa979fb8561f900d5d1fa526ec9d",
+      "bytes": 374456,
+      "lines": 7469,
+      "modified_local": "2026-04-08T09:48:27.269379",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/CitySimulation.gaml",
+      "sha256": "a8c0db87ff45bb8abb40e1c96a6e25e243a6110f59a7d7d26240546635524120",
+      "git_blob_lf": "acf8a7c7407532ba53f3bbac88a54d73ad887c80",
+      "bytes": 198495,
+      "lines": 3724,
+      "modified_local": "2026-02-25T16:56:25.195697",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/GAMA_Graph_Validation/Leganes_Drive_Random_Smoke.gaml",
+      "sha256": "7b61a4b25a8e8c42d4fd5824eabcd0d25f6b7ef6ed521f1d9897da8f49d5ce4f",
+      "git_blob_lf": "6b472bfbc5d91691cc2c7888afa68f7648c37f65",
+      "bytes": 3762,
+      "lines": 135,
+      "modified_local": "2026-06-01T14:42:34.210128",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/GAMA_Graph_Validation/Leganes_Drive_With_Streets_Smoke.gaml",
+      "sha256": "503cb587f10f19168425163ba4744a12feb4549b48471881b26b8596fef8270e",
+      "git_blob_lf": "04da9d368804825533b0c09b410e7c6998db0ac0",
+      "bytes": 5216,
+      "lines": 176,
+      "modified_local": "2026-06-01T14:42:41.430680",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/GAMA_Graph_Validation/Leganes_Graph_Validation.gaml",
+      "sha256": "05b43f0c851c5c9de3abc48317c8339e5093af4cb6401d3d3169cc0a6254b0e8",
+      "git_blob_lf": "ae25e290615e9ac7cdb7350cf73581744799e96d",
+      "bytes": 4366,
+      "lines": 135,
+      "modified_local": "2026-06-01T14:42:29.595634",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/gorrion.gaml",
+      "sha256": "edbfe22bb26b91a343ec7b00f578f9c9632315c4c8f864374a42052cc8a01ba0",
+      "git_blob_lf": "993cd88974d1e3b701b677d34cbe275250e6d07f",
+      "bytes": 413970,
+      "lines": 8292,
+      "modified_local": "2026-06-03T18:05:21.529779",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/Logger.gaml",
+      "sha256": "ad349bbe3e3b58211c953ea3c4f80fc92afaefca22950961ca11e8ca532b0fb1",
+      "git_blob_lf": "735a709780cbbe992ff9feda6fc709885f54dff0",
+      "bytes": 1351,
+      "lines": 40,
+      "modified_local": "2026-02-25T16:56:06.689767",
+      "tracked_at_inspection": false
+    },
+    {
+      "path": "models/population.gaml",
+      "sha256": "7874fdc327f0dd3785f9c60d6ad68be4ee608eebddcafa85f7b6309af9fcb39f",
+      "git_blob_lf": "2b86ad8aa7d364908d1dc4287126e3fb8188674b",
+      "bytes": 205614,
+      "lines": 3785,
+      "modified_local": "2026-02-25T16:56:26.447862",
+      "tracked_at_inspection": false
+    }
+  ]
+}
