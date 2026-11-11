@@ -65,6 +65,8 @@ La carpeta creada contiene:
 
 Usar únicamente la copia dentro de `project/`. El manifiesto proporciona `launch.argv` y `launch.cwd`. Para ejecutar deliberadamente el plan preparado, en PowerShell:
 
+En Windows, `launch.cwd` es el directorio `headless` de la instalación GAMA: el lanzador oficial resuelve `../plugins`, `../GAMA.ini` y `./configuration` desde allí. El modelo y el workspace siguen apuntando a la copia aislada mediante rutas absolutas. Los manifiestos creados antes de esta corrección pueden indicar erróneamente el directorio del modelo; registrar una corrección de lanzamiento aparte, sin sobrescribir el manifiesto original.
+
 ```powershell
 $runDir = 'D:\investigacion\city-runs\ID_DEVUELTO'
 $manifest = Get-Content -Raw -LiteralPath "$runDir\manifest.json" | ConvertFrom-Json

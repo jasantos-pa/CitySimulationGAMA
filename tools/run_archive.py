@@ -226,7 +226,7 @@ def prepare(args):
         "tool_sha256": sha256(tool_copy),
         "plan_sha256": sha256(run_dir / "plan.xml"),
         "launch": {"argv": [str(launcher), "-ws", str(run_dir / "gama-workspace"), str(run_dir / "plan.xml"), str(run_dir / "headless")],
-                   "cwd": str((snapshot / model_relative).parent)},
+                   "cwd": str(launcher.parent)},
         "warnings": warnings,
     }
     write_json(run_dir / "manifest.json", manifest)
