@@ -12,6 +12,8 @@ nav:
   - Poblacion: poblacion.md
   - Movimientos: movimientos.md
   - Visualizacion: visualizacion.md
+  - Variantes y procedencia: variantes.md
+  - Ejecuciones trazables: ejecuciones.md
 
 markdown_extensions:
   - attr_list
